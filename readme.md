@@ -36,7 +36,9 @@ Order of field descriptor define the order of the field values that will be foun
 
 #### structured-data bundle fragment
 
+A structured-data bundle fragment is a bundle-fragment using trit at tag[6] set to 1 to indicate the bundle fragment head transaction and the trit at tag[5] to indicate the tail transaction. 
+
 Extra-data digest field of the head transaction is a pointer to the head transaction of the corresponding meta-data fragment.
-The signature_or_message fragment contains the data. values are of course ordered and sized according field descriptor of the meta-data fragment.
+The signature_or_message fragment contains the data. values are of course ordered and sized according field descriptor sequence of the meta-data fragment.
 
 ![bundles](https://github.com/iotaledger/serialization.ixi/blob/master/docs/serialization.png?raw=true)
