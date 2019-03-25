@@ -1,0 +1,9 @@
+.*
+*.jar
+build/
+out/
+serialization.ixi.iml
+!.gitignore
+gradle/
+gradlew.bat
+gradlew
