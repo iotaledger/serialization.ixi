@@ -16,7 +16,7 @@ To do this, we define 2 new types of bundle fragments.
 
 ### Bundle fragment
 
-A bundle fragment is a subset of [standard IOTA bundle](https://docs.iota.org/docs/getting-started/0.1/introduction/what-is-a-bundle). Transactions in a bundle fragment are ordered by their trunk transaction (this characteristic is inherited from IOTA bundle). Just like IOTA bundles, bundle fragments have a head transaction and a tail transaction (which can be the same transaction when the bundle fragment contains only one transaction). We set a specific trit in the tag field to 1 to mark the head transaction of a bundle fragment. We set another trit of the tag field to 1 to mark the tail transaction of a bundle fragment. Those 2 trits must be 0 in all body transactions.
+A bundle fragment is a portion of [standard IOTA bundle](https://docs.iota.org/docs/getting-started/0.1/introduction/what-is-a-bundle). Transactions in a bundle fragment are ordered by their trunk transaction (this characteristic is inherited from IOTA bundle). Just like IOTA bundles, bundle fragments have a head transaction and a tail transaction (which can be the same transaction when the bundle fragment contains only one transaction). We set a specific trit in the tag field to 1 to mark the head transaction of a bundle fragment. We set another trit of the tag field to 1 to mark the tail transaction of a bundle fragment. Those 2 trits must be 0 in all body transactions.
 
 ### meta-data bundle fragment
 
