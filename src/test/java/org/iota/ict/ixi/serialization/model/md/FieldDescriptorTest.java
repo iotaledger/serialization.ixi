@@ -14,20 +14,20 @@ public class FieldDescriptorTest {
 
     @Test
     public void ensureFieldDescriptorSize(){
-        assertEquals(0, FieldDescriptor.FIELD_DESCRIPTOR_TRIT_LENGTH % 3);
+        assertEquals(0, FieldDescriptor.FIELD_DESCRIPTOR_LENGTH % 3);
         assertEquals(0, (Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength - MetadataFragment.METADATA_LANGUAGE_VERSION.length()) % FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH );
     }
 
     @Test
     public void simpleConstructorTest(){
-        String expected = Trytes.padRight("INTA", FieldDescriptor.FIELD_DESCRIPTOR_TRIT_LENGTH/3);
+        String expected = Trytes.padRight("INTA", FieldDescriptor.FIELD_DESCRIPTOR_LENGTH /3);
         FieldDescriptor fieldDescriptor = FieldDescriptor.withAsciiLabel(FIELD_TYPE.INTEGER,1,null);
         assertEquals(expected, fieldDescriptor.toTrytes());
     }
 
     @Test
     public void deserializerTest() throws UnknownFieldTypeException {
-        String src = Trytes.padRight("INTA", FieldDescriptor.FIELD_DESCRIPTOR_TRIT_LENGTH/3);
+        String src = Trytes.padRight("INTA", FieldDescriptor.FIELD_DESCRIPTOR_LENGTH /3);
 
         FieldDescriptor fieldDescriptor = FieldDescriptor.fromTrytes(src);
         assertEquals(FIELD_TYPE.INTEGER, fieldDescriptor.getType());
