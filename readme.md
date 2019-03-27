@@ -1,7 +1,5 @@
 ## Serialization.ixi
 
-WIP
-
 The purpose of serialization ixi is to provide a simple way to store/exchange structured data on the tangle.
 
 In order to achieve maximal flexibility, but also to favorise interoperability between actors, this IXI provides :

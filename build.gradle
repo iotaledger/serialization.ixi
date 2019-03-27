@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+group 'org.iota'
+version '0.0.1-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+dependencies {
+    compile 'com.github.iotaledger:ict:bcdc247c6fbbedc7f749533bfc2c9628cadcf7a4'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.11.1'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.1'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.21'
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.4.1'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.21.0'
+}
+
+task ixi(type: Jar) {
+    baseName = 'serialization'
+    destinationDir = file("$rootDir")
+    from("./") { include 'module.json' }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
