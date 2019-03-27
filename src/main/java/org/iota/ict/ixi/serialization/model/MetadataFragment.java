@@ -17,8 +17,6 @@ public class MetadataFragment extends BundleFragment {
         super(headTransaction);
     }
 
-
-
     public boolean hasTailFlag(Transaction transaction){
         return Trytes.toTrits(transaction.tag())[3]==1;
     }

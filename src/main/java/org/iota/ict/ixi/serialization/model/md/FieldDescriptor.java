@@ -22,11 +22,11 @@ public class FieldDescriptor {
 
     private final String trytes;
 
-    public static FieldDescriptor withAsciiLabel(FIELD_TYPE type, int size, String label) {
+    public static FieldDescriptor withAsciiLabel(FIELD_TYPE type, long size, String label) {
         return withAsciiLabel(type, BigInteger.valueOf(size), fit(Trytes.fromAscii(label == null ? "" : removeTrailing9(label)), FIELD_LABEL_LENGTH / 3));
     }
 
-    public static FieldDescriptor withTrytesLabel(FIELD_TYPE type, int size, String label) {
+    public static FieldDescriptor withTrytesLabel(FIELD_TYPE type, long size, String label) {
         return withTrytesLabel(type, BigInteger.valueOf(size), label);
     }
 
@@ -44,12 +44,8 @@ public class FieldDescriptor {
     }
 
     public static FieldDescriptor fromTrytes(String trytes) throws UnknownFieldTypeException {
-        FIELD_TYPE type = FIELD_TYPE.fromTrytes(trytes.substring(0,FIELD_TYPE_LENGTH/3));
-        if(type==null){
-            throw new UnknownFieldTypeException("trytes.substring(0,FIELD_TYPE_LENGTH/3) is not a valid field type");
-        }
         return new FieldDescriptor(
-                type,
+                FIELD_TYPE.fromTrytes(trytes.substring(0,FIELD_TYPE_LENGTH/3)),
                 Trytes.toNumber(trytes.substring(FIELD_TYPE_LENGTH/3,(FIELD_TYPE_LENGTH+FIELD_SIZE_LENGTH)/3)),
                 trytes.substring((FIELD_TYPE_LENGTH+FIELD_SIZE_LENGTH)/3)
              );
