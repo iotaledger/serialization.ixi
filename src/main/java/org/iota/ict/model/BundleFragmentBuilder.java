@@ -3,6 +3,7 @@ package org.iota.ict.model;
 import java.util.LinkedList;
 import java.util.List;
 
+//TODO : move this class in proper package when updating to latest ict
 public class BundleFragmentBuilder {
 
     private final LinkedList<TransactionBuilder> tailToHead = new LinkedList<>();
@@ -45,6 +46,7 @@ public class BundleFragmentBuilder {
             if (!isFirst)
                 unfinished.trunkHash = lastTransaction.hash;
             Transaction currentTransaction = unfinished.build();
+            //TODO : trunk is package-private in ict (will change in new version)
             currentTransaction.trunk = lastTransaction;
             lastTransaction = currentTransaction;
         }
