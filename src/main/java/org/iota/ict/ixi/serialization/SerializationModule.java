@@ -3,9 +3,7 @@ package org.iota.ict.ixi.serialization;
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.serialization.model.MetadataFragment;
-import org.iota.ict.ixi.serialization.model.MetadataFragmentBuilder;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
-import org.iota.ict.ixi.serialization.model.StructuredDataFragmentBuilder;
 import org.iota.ict.ixi.serialization.util.InputValidator;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 
@@ -20,14 +18,14 @@ public class SerializationModule extends IxiModule {
         //TODO
     }
 
-    public MetadataFragment buildMetadataFragment(MetadataFragmentBuilder builder){
+    public MetadataFragment buildMetadataFragment(MetadataFragment.Builder builder){
         if(builder==null) {
             throw new IllegalArgumentException("builder cannot be null");
         }
         return builder.build();
     }
 
-    public StructuredDataFragment buildStructuredDataFragment(StructuredDataFragmentBuilder builder){
+    public StructuredDataFragment buildStructuredDataFragment(StructuredDataFragment.Builder builder){
         if(builder==null) {
             throw new IllegalArgumentException("builder cannot be null");
         }

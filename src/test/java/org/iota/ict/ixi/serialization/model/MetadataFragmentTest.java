@@ -14,11 +14,11 @@ public class MetadataFragmentTest {
 
     @Test
     public void simpleMetadataFragmentTest(){
-        MetadataFragmentBuilder builder = new MetadataFragmentBuilder();
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
         FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FIELD_TYPE.ASCII,48,"a simple label");
         builder.appendField(FieldDescriptor.withAsciiLabel(FIELD_TYPE.ASCII,48,"a simple label"));
         MetadataFragment metadataFragment = builder.build();
-        String expected = MetadataFragmentBuilder.METADATA_LANGUAGE_VERSION+descriptor.toTrytes();
+        String expected = MetadataFragment.METADATA_LANGUAGE_VERSION+descriptor.toTrytes();
         expected = Trytes.padRight(expected, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
         assertEquals(expected,metadataFragment.getHeadTransaction().signatureFragments());
         String expectedTag = Trytes.padRight("9D",Transaction.Field.TAG.tryteLength);
@@ -30,13 +30,13 @@ public class MetadataFragmentTest {
 
     @Test
     public void simpleMetadataFragmentWith40FieldTest(){
-        MetadataFragmentBuilder builder = new MetadataFragmentBuilder();
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
         FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FIELD_TYPE.ASCII,48,"a simple label");
         for(int i=0; i<40 ; i++){
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
-        String expected = MetadataFragmentBuilder.METADATA_LANGUAGE_VERSION;
+        String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
         for(int i=0; i<40 ; i++){
             expected+=descriptor.toTrytes();
         }
@@ -50,13 +50,13 @@ public class MetadataFragmentTest {
 
     @Test
     public void simpleMetadataFragmentWith41FieldTest(){
-        MetadataFragmentBuilder builder = new MetadataFragmentBuilder();
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
         FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FIELD_TYPE.ASCII,48,"a simple label");
         for(int i=0; i<41 ; i++){
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
-        String expected = MetadataFragmentBuilder.METADATA_LANGUAGE_VERSION;
+        String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
         for(int i=0; i<40 ; i++){
             expected+=descriptor.toTrytes();
         }
@@ -72,13 +72,13 @@ public class MetadataFragmentTest {
 
     @Test
     public void simpleMetadataFragmentWith81FieldTest(){
-        MetadataFragmentBuilder builder = new MetadataFragmentBuilder();
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
         FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FIELD_TYPE.ASCII,48,"a simple label");
         for(int i=0; i<81 ; i++){
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
-        String expected = MetadataFragmentBuilder.METADATA_LANGUAGE_VERSION;
+        String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
         for(int i=0; i<40 ; i++){
             expected+=descriptor.toTrytes();
         }
@@ -96,7 +96,7 @@ public class MetadataFragmentTest {
 
     @Test
     public void invalidInputCheck(){
-        MetadataFragmentBuilder builder = new MetadataFragmentBuilder();
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
         Exception exception = assertThrows(IllegalStateException.class, () ->
                 builder.build());
         assertEquals("Cannot build metadata fragment with no fields", exception.getMessage());

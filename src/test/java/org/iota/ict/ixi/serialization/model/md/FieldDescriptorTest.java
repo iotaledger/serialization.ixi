@@ -1,6 +1,6 @@
 package org.iota.ict.ixi.serialization.model.md;
 
-import org.iota.ict.ixi.serialization.model.MetadataFragmentBuilder;
+import org.iota.ict.ixi.serialization.model.MetadataFragment;
 import org.iota.ict.ixi.serialization.util.UnknownFieldTypeException;
 import org.iota.ict.model.Transaction;
 import org.iota.ict.utils.Trytes;
@@ -15,7 +15,7 @@ public class FieldDescriptorTest {
     @Test
     public void ensureFieldDescriptorSize(){
         assertEquals(0, FieldDescriptor.FIELD_DESCRIPTOR_TRIT_LENGTH % 3);
-        assertEquals(0, (Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength - MetadataFragmentBuilder.METADATA_LANGUAGE_VERSION.length()) % FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH );
+        assertEquals(0, (Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength - MetadataFragment.METADATA_LANGUAGE_VERSION.length()) % FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH );
     }
 
     @Test
