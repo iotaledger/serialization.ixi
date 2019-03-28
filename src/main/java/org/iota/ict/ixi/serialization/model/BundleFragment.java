@@ -1,5 +1,6 @@
 package org.iota.ict.ixi.serialization.model;
 
+import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.model.Transaction;
 
 public abstract class BundleFragment {
@@ -24,4 +25,5 @@ public abstract class BundleFragment {
 
     abstract boolean hasTailFlag(Transaction t);
     abstract boolean hasHeadFlag(Transaction t);
+
 }

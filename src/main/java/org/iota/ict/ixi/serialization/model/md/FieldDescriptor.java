@@ -1,6 +1,6 @@
 package org.iota.ict.ixi.serialization.model.md;
 
-import org.iota.ict.ixi.serialization.util.UnknownFieldTypeException;
+import org.iota.ict.ixi.serialization.util.InputValidator;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigInteger;
@@ -22,21 +22,23 @@ public class FieldDescriptor {
     public static final int FIELD_DESCRIPTOR_LENGTH = FIELD_TYPE_LENGTH + FIELD_SIZE_LENGTH + FIELD_LABEL_LENGTH;
     public static final int FIELD_DESCRIPTOR_TRYTE_LENGTH = FIELD_DESCRIPTOR_LENGTH /3;
 
-    private FIELD_TYPE type;
+    private static final BigInteger BIG_INT_3 = new BigInteger("3");
+
+    private FieldType type;
     private BigInteger size;
     private String label;
 
     private final String trytes;
 
-    public static FieldDescriptor withAsciiLabel(FIELD_TYPE type, long size, String label) {
-        return withAsciiLabel(type, BigInteger.valueOf(size), asciiLabelToTrytes(label));
+    public static FieldDescriptor withAsciiLabel(FieldType type, long size, String label) {
+        return withAsciiLabel(type, BigInteger.valueOf(size), label);
     }
 
-    public static FieldDescriptor withTrytesLabel(FIELD_TYPE type, long size, String label) {
+    public static FieldDescriptor withTrytesLabel(FieldType type, long size, String label) {
         return withTrytesLabel(type, BigInteger.valueOf(size), label);
     }
 
-    public static FieldDescriptor withAsciiLabel(FIELD_TYPE type, BigInteger size, String label) {
+    public static FieldDescriptor withAsciiLabel(FieldType type, BigInteger size, String label) {
         checkInputs(type, size);
         return new FieldDescriptor(
                 type,
@@ -44,20 +46,20 @@ public class FieldDescriptor {
                 asciiLabelToTrytes(label));
     }
 
-    public static FieldDescriptor withTrytesLabel(FIELD_TYPE type, BigInteger size, String label){
+    public static FieldDescriptor withTrytesLabel(FieldType type, BigInteger size, String label){
         checkInputs(type, size);
         return new FieldDescriptor(type, size, label);
     }
 
-    public static FieldDescriptor fromTrytes(String trytes) throws UnknownFieldTypeException {
+    public static FieldDescriptor fromTrytes(String trytes) {
         return new FieldDescriptor(
-                FIELD_TYPE.fromTrytes(trytes.substring(0,FIELD_SIZE_TRYTE_OFFSET)),
+                FieldType.fromTrytes(trytes.substring(0,FIELD_SIZE_TRYTE_OFFSET)),
                 Trytes.toNumber(trytes.substring(FIELD_SIZE_TRYTE_OFFSET, LABEL_TRYTE_OFFSET)),
                 trytes.substring(LABEL_TRYTE_OFFSET)
              );
     }
 
-    public FIELD_TYPE getType() {
+    public FieldType getType() {
         return type;
     }
 
@@ -77,7 +79,12 @@ public class FieldDescriptor {
         return trytes;
     }
 
-    private FieldDescriptor(FIELD_TYPE type, BigInteger size, String labelAsTrytes){
+
+    public int getTryteSize() {
+        return size.divide(BIG_INT_3).intValue();
+    }
+
+    private FieldDescriptor(FieldType type, BigInteger size, String labelAsTrytes){
         this.type = type;
         this.size = size;
         this.label = labelAsTrytes.length()>FIELD_LABEL_TRYTE_LENGTH ? labelAsTrytes.substring(0,FIELD_LABEL_TRYTE_LENGTH) : labelAsTrytes;
@@ -87,7 +94,7 @@ public class FieldDescriptor {
                 labelAsTrytes;
     }
 
-    private static void checkInputs(FIELD_TYPE type, BigInteger size) {
+    private static void checkInputs(FieldType type, BigInteger size) {
         if(type==null){
             throw new IllegalArgumentException("type cannot be null");
         }
@@ -100,21 +107,8 @@ public class FieldDescriptor {
     }
 
     private static String asciiLabelToTrytes(String label) {
-        return fit(Trytes.fromAscii(label == null ? "" : removeTrailing9(label)), FIELD_LABEL_TRYTE_LENGTH);
+        return InputValidator.fit(Trytes.fromAscii(label == null ? "" : label), FIELD_LABEL_TRYTE_LENGTH);
     }
 
-    private static String fit(String original, int targetSize){
-        if(original==null) original = "";
-        if(original.length()<targetSize) return Trytes.padRight(original, targetSize);
-        if(original.length()>targetSize) return original.substring(0,targetSize);
-        return original;
-    }
-
-    private static String removeTrailing9(String s){
-        while(s.length()>0 && s.charAt(s.length()-1)=='9'){
-            s = s.substring(0,s.length()-1);
-        }
-        return s;
-    }
 
 }
