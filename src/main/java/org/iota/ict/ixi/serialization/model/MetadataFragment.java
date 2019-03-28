@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class MetadataFragment extends BundleFragment {
 
-    public static final String METADATA_LANGUAGE_VERSION = "A99999999999999999999999999";
+    public static final String METADATA_LANGUAGE_VERSION = "A99";
 
     public static final int FIELD_DESCRIPTOR_PER_TRANSACTION = ( Transaction.Field.SIGNATURE_FRAGMENTS.tritLength - METADATA_LANGUAGE_VERSION.length() ) / FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH ;
 
@@ -56,6 +56,8 @@ public class MetadataFragment extends BundleFragment {
         return valuesOffsets.get(i);
     }
 
+
+
     public static class Builder extends BundleFragmentBuilder {
 
         private List<FieldDescriptor> fields = new ArrayList<>();
@@ -83,17 +85,19 @@ public class MetadataFragment extends BundleFragment {
         }
 
         private void buildTransactions() {
-            TransactionBuilder transactionBuilder = prepareFreshTransactionBuilder();
-            BigInteger currentOffset = BigInteger.ZERO;
+            TransactionBuilder transactionBuilder = prepareFreshTransactionBuilder("");
+            BigInteger currentOffsetForValue = BigInteger.ZERO;
             for(FieldDescriptor descriptor:fields){
-                if(currentTransactionMessageIsFull(transactionBuilder)){
-                    transactionBuilder.signatureFragments = Trytes.padRight(transactionBuilder.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-                    addFirst(transactionBuilder);
-                    transactionBuilder = prepareFreshTransactionBuilder();
-                }
                 transactionBuilder.signatureFragments += descriptor.toTrytes();
-                valuesOffsets.put(keyCount, currentOffset);
-                currentOffset = currentOffset.add(descriptor.getSize());
+                if(transactionBuilder.signatureFragments.length() > Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
+                    String remaining = transactionBuilder.signatureFragments.substring(Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+                    transactionBuilder.signatureFragments = transactionBuilder.signatureFragments.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+                    addFirst(transactionBuilder);
+                    transactionBuilder = prepareFreshTransactionBuilder(remaining);
+                }
+
+                valuesOffsets.put(keyCount, currentOffsetForValue);
+                currentOffsetForValue = currentOffsetForValue.add(descriptor.getSize());
                 keyCount++;
             }
             transactionBuilder.signatureFragments = Trytes.padRight(transactionBuilder.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -109,13 +113,9 @@ public class MetadataFragment extends BundleFragment {
             }
         }
 
-        private static boolean currentTransactionMessageIsFull(TransactionBuilder transactionBuilder){
-            return transactionBuilder.signatureFragments.length() > Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength - FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH;
-        }
-
-        private static TransactionBuilder prepareFreshTransactionBuilder(){
+        private static TransactionBuilder prepareFreshTransactionBuilder(String remaining){
             TransactionBuilder transactionBuilder = new TransactionBuilder();
-            transactionBuilder.signatureFragments = METADATA_LANGUAGE_VERSION;
+            transactionBuilder.signatureFragments = METADATA_LANGUAGE_VERSION + remaining;
             return  transactionBuilder;
         }
     }

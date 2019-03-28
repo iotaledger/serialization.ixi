@@ -14,8 +14,6 @@ public class FieldDescriptorTest {
     @Test
     public void ensureFieldDescriptorSize(){
         assertEquals(0, FieldDescriptor.FIELD_DESCRIPTOR_LENGTH % 3,  "Field descriptor should be an exact multiple of 3");
-        assertEquals(0, (Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength - MetadataFragment.METADATA_LANGUAGE_VERSION.length()) % FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH ,
-                "Field descriptor should fit in one transaction");
     }
 
     @Test

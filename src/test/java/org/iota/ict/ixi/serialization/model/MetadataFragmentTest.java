@@ -40,6 +40,7 @@ public class MetadataFragmentTest {
         for(int i=0; i<40 ; i++){
             expected+=descriptor.toTrytes();
         }
+        expected = Trytes.padRight(expected,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
         assertEquals(expected,metadataFragment.getHeadTransaction().signatureFragments());
         String expectedTag = Trytes.padRight("9D",Transaction.Field.TAG.tryteLength);
         assertEquals(expectedTag, metadataFragment.getHeadTransaction().tag());
@@ -58,9 +59,10 @@ public class MetadataFragmentTest {
         }
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
-        for(int i=0; i<40 ; i++){
+        for(int i=0; i<41 ; i++){
             expected+=descriptor.toTrytes();
         }
+        expected = expected.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
         assertEquals(expected,metadataFragment.getHeadTransaction().signatureFragments());
         String expectedTag = Trytes.padRight("9C",Transaction.Field.TAG.tryteLength);
         assertEquals(expectedTag, metadataFragment.getHeadTransaction().tag());
@@ -81,9 +83,10 @@ public class MetadataFragmentTest {
         }
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
-        for(int i=0; i<40 ; i++){
+        for(int i=0; i<41 ; i++){
             expected+=descriptor.toTrytes();
         }
+        expected = expected.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
         assertEquals(expected,metadataFragment.getHeadTransaction().signatureFragments());
         String expectedTag = Trytes.padRight("9C",Transaction.Field.TAG.tryteLength);
         assertEquals(expectedTag, metadataFragment.getHeadTransaction().tag());
