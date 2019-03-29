@@ -1,7 +1,7 @@
 package org.iota.ict.ixi.serialization.util;
 
-import org.iota.ict.model.Transaction;
-import org.iota.ict.model.TransactionBuilder;
+import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigInteger;

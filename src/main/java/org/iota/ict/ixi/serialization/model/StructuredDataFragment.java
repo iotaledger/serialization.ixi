@@ -2,9 +2,8 @@ package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.ixi.serialization.util.Utils;
-import org.iota.ict.model.BundleFragmentBuilder;
-import org.iota.ict.model.Transaction;
-import org.iota.ict.model.TransactionBuilder;
+import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 
@@ -63,7 +62,7 @@ public class StructuredDataFragment extends BundleFragment {
         return value==null?"":Utils.asciiFromTrits(value);
     }
 
-    public static class Builder extends BundleFragmentBuilder {
+    public static class Builder extends BundleFragment.Builder {
 
         private Map<Integer, byte[]> values = new HashMap<>();
 

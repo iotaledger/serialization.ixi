@@ -2,7 +2,7 @@ package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldType;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
-import org.iota.ict.model.Transaction;
+import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.utils.Trytes;
 import org.junit.jupiter.api.Test;
 
