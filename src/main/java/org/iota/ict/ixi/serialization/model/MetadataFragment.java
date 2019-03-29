@@ -1,6 +1,7 @@
 package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
+import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.BundleFragmentBuilder;
 import org.iota.ict.model.Transaction;
 import org.iota.ict.model.TransactionBuilder;
@@ -20,12 +21,15 @@ public class MetadataFragment extends BundleFragment {
 
     private int keyCount;
     private Map<Integer, BigInteger> valuesOffsets;
+    private List<Long> descriptorsOffsets = new ArrayList<>();
+    private final BigInteger tritLength;
 
-
-    private MetadataFragment(Transaction headTransaction, int keyCount, Map<Integer, BigInteger> valuesOffsets){
+    private MetadataFragment(Transaction headTransaction, int keyCount, Map<Integer, BigInteger> valuesOffsets, List<Long> descriptorsOffsets){
         super(headTransaction);
         this.keyCount = keyCount;
         this.valuesOffsets = valuesOffsets;
+        this.descriptorsOffsets = descriptorsOffsets;
+        tritLength = valuesOffsets.get(keyCount-1).add(getDescriptor(keyCount-1).getTritSize());
     }
 
     public boolean hasTailFlag(Transaction transaction){
@@ -43,12 +47,21 @@ public class MetadataFragment extends BundleFragment {
     public FieldDescriptor getDescriptor(int i) {
         assert i < keyCount;
         Transaction t = getHeadTransaction();
-        while(i>FIELD_DESCRIPTOR_PER_TRANSACTION){
-            i = i - FIELD_DESCRIPTOR_PER_TRANSACTION;
+        long offset = descriptorsOffsets.get(i);
+        while(offset>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
+            offset = offset - Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength;
             t = t.getTrunk();
         }
-        int startIndex = METADATA_LANGUAGE_VERSION.length() + ( i * FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH );
-        String fieldDescriptorTrytes = t.signatureFragments().substring(startIndex, startIndex+FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
+        int startIndex = (int) offset;
+        String fieldDescriptorTrytes;
+        if (startIndex+FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH < Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength) {
+            fieldDescriptorTrytes = t.signatureFragments().substring(startIndex, startIndex+FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
+        }else {
+            //FieldDescriptor is encoded on 2 transactions
+            fieldDescriptorTrytes = t.signatureFragments().substring(startIndex);
+            t = t.getTrunk();
+            fieldDescriptorTrytes = fieldDescriptorTrytes + t.signatureFragments().substring(0,FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH -  fieldDescriptorTrytes.length() );
+        }
         return FieldDescriptor.fromTrytes(fieldDescriptorTrytes);
     }
 
@@ -56,6 +69,9 @@ public class MetadataFragment extends BundleFragment {
         return valuesOffsets.get(i);
     }
 
+    public BigInteger getTritLength() {
+        return tritLength;
+    }
 
 
     public static class Builder extends BundleFragmentBuilder {
@@ -65,6 +81,7 @@ public class MetadataFragment extends BundleFragment {
         private int keyCount = 0;
 
         private Map<Integer, BigInteger> valuesOffsets = new HashMap<>();
+        private List<Long> descriptorsOffsets = new ArrayList<>();
 
         public MetadataFragment build(){
             if(fields.size()==0){
@@ -77,7 +94,7 @@ public class MetadataFragment extends BundleFragment {
 
             Transaction lastTransaction = buildBundleFragment();
 
-            return new MetadataFragment(lastTransaction, keyCount, valuesOffsets);
+            return new MetadataFragment(lastTransaction, keyCount, valuesOffsets, descriptorsOffsets);
         }
 
         public void appendField(FieldDescriptor descriptor){
@@ -87,20 +104,23 @@ public class MetadataFragment extends BundleFragment {
         private void buildTransactions() {
             TransactionBuilder transactionBuilder = prepareFreshTransactionBuilder("");
             BigInteger currentOffsetForValue = BigInteger.ZERO;
+            int transactionCount = 0;
             for(FieldDescriptor descriptor:fields){
+                descriptorsOffsets.add((long)transactionBuilder.signatureFragments.length() + (transactionCount * Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength));
                 transactionBuilder.signatureFragments += descriptor.toTrytes();
                 if(transactionBuilder.signatureFragments.length() > Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
                     String remaining = transactionBuilder.signatureFragments.substring(Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
                     transactionBuilder.signatureFragments = transactionBuilder.signatureFragments.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
                     addFirst(transactionBuilder);
+                    transactionCount ++;
                     transactionBuilder = prepareFreshTransactionBuilder(remaining);
                 }
 
                 valuesOffsets.put(keyCount, currentOffsetForValue);
-                currentOffsetForValue = currentOffsetForValue.add(descriptor.getSize());
+                currentOffsetForValue = currentOffsetForValue.add(descriptor.getTritSize());
                 keyCount++;
             }
-            transactionBuilder.signatureFragments = Trytes.padRight(transactionBuilder.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+            Utils.padRightSignature(transactionBuilder);
             addFirst(transactionBuilder);
         }
 

@@ -15,8 +15,8 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("ASC"),48,"a simple label");
-        builder.appendField(FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("ASC"),48,"a simple label"));
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
+        builder.appendField(FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label"));
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION+descriptor.toTrytes();
         expected = Trytes.padRight(expected, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -31,7 +31,7 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentWith40FieldTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("ASC"),48,"a simple label");
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
         for(int i=0; i<40 ; i++){
             builder.appendField(descriptor);
         }
@@ -51,15 +51,15 @@ public class MetadataFragmentTest {
     }
 
     @Test
-    public void simpleMetadataFragmentWith41FieldTest(){
+    public void simpleMetadataFragmentWith42FieldTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("ASC"),48,"a simple label");
-        for(int i=0; i<41 ; i++){
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
+        for(int i=0; i<42 ; i++){
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
-        for(int i=0; i<41 ; i++){
+        for(int i=0; i<42 ; i++){
             expected+=descriptor.toTrytes();
         }
         expected = expected.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -71,19 +71,19 @@ public class MetadataFragmentTest {
 
         assertTrue(metadataFragment.hasHeadFlag(metadataFragment.getHeadTransaction()));
         assertTrue(metadataFragment.hasTailFlag(metadataFragment.getTailTransaction()));
-        assertEquals(41, metadataFragment.getKeyCount());
+        assertEquals(42, metadataFragment.getKeyCount());
     }
 
     @Test
     public void simpleMetadataFragmentWith81FieldTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("ASC"),48,"a simple label");
-        for(int i=0; i<81 ; i++){
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
+        for(int i=0; i<85 ; i++){
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
-        for(int i=0; i<41 ; i++){
+        for(int i=0; i<42 ; i++){
             expected+=descriptor.toTrytes();
         }
         expected = expected.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -97,7 +97,7 @@ public class MetadataFragmentTest {
 
         assertTrue(metadataFragment.hasHeadFlag(metadataFragment.getHeadTransaction()));
         assertTrue(metadataFragment.hasTailFlag(metadataFragment.getTailTransaction()));
-        assertEquals(81, metadataFragment.getKeyCount());
+        assertEquals(85, metadataFragment.getKeyCount());
     }
 
     @Test

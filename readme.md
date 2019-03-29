@@ -24,11 +24,26 @@ The signatureMessageFragment of a meta-data bundle fragment contains a non-empty
 
 A *field descriptor* is composed of 3 components of fixed size:
 
-- The <u>type</u> component (9 trits) indicates by a magic number the type of the field. (examples : integer, float, hash, ascii, ... tbd)
-- The <u>size</u> component (X trits) indicates the size of the field in trits
+- The <u>type</u> component (6 trits) indicates the cardinality and optionally the way to interpret the value  
+    - the first trit is called the cardinality trit. 
+        - A cardinality trit 1 indicates that the field is a "single value" 
+        - A cardinality trit -1 indicates that the field is a "multiple value" 
+        - A cardinality trit 0 is illegal 
+    - the 5 following trits indicates how to interpret the (mutiple-)value(s).
+        - 0,0,0,0,0 indicates an unspecified field (i.e. just 'trits')
+        - 1,0,0,0,0 denotes an Integer 
+        - 0,1,0,0,0 denotes an Boolean 
+        - 0,0,1,0,0 denotes an Float 
+        - 0,0,0,1,0 denotes a TransactionHash 
+        - 0,0,0,0,1 denotes an encode ascii value 
+        - (other trit sequences are 'reserved' for future use)
+- The <u>size</u> component (X trits) indicates either :
+    - the size of the field in trits (when cardinality is "single value")
+    - the size of one element of the list (when cardinality is "multiple values")
+    Note that a Boolean field should have a size of 1 and a TransactionHash field should have a size of 243.
 - The <u>label</u> component (Y trits) is a human readable description  (ascii encoded) of the field.
 
- If required, the sequence of field descriptor can be encoded in multiple transactions.
+If required, the sequence of field descriptor can be encoded in multiple transactions.
 
 
 Order of field descriptor define the order of the field values that will be found in the structured data fragment.

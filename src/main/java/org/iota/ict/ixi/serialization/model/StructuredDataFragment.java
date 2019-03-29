@@ -1,7 +1,7 @@
 package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
-import org.iota.ict.ixi.serialization.util.InputValidator;
+import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.BundleFragmentBuilder;
 import org.iota.ict.model.Transaction;
 import org.iota.ict.model.TransactionBuilder;
@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class StructuredDataFragment extends BundleFragment {
+
+    private static final BigInteger MESSAGE_SIZE = BigInteger.valueOf(Transaction.Field.SIGNATURE_FRAGMENTS.tritLength);
 
     private final MetadataFragment metadataFragment;
 
@@ -29,23 +31,41 @@ public class StructuredDataFragment extends BundleFragment {
         return Trytes.toTrits(transaction.tag())[6]==1;
     }
 
-    public String getValue(int i) {
+    public byte[] getValue(int i) {
         FieldDescriptor descriptor = metadataFragment.getDescriptor(i);
         if(descriptor==null) {
             return null;
         }
         long offset = metadataFragment.getOffsetForValueAtIndex(i).longValue();
         Transaction t = getHeadTransaction();
-        while(offset> Constants.TRANSACTION_SIZE_TRYTES){
+        while(offset> Constants.TRANSACTION_SIZE_TRITS){
             t = t.getTrunk();
-            offset -= Constants.TRANSACTION_SIZE_TRYTES;
+            offset -= Constants.TRANSACTION_SIZE_TRITS;
         }
-        return t.signatureFragments().substring((int)offset,(int)offset+descriptor.getSize().intValue());
+        byte[] trits = Trytes.toTrits(t.signatureFragments());
+        byte[] ret = new byte[(int)descriptor.getTritSize().longValue()];
+        System.arraycopy(trits,(int)offset,ret,0,ret.length);
+        return ret;
+    }
+
+    public boolean getBooleanValue(int i){
+        byte[] value = getValue(i);
+        return value==null?null:value[0]==1;
+    }
+
+    public BigInteger getIntegerValue(int i){
+        byte[] value = getValue(i);
+        return value==null?null:Utils.integerFromTrits(value);
+    }
+
+    public String getAsciiValue(int i){
+        byte[] value = getValue(i);
+        return value==null?"":Utils.asciiFromTrits(value);
     }
 
     public static class Builder extends BundleFragmentBuilder {
 
-        private Map<Integer, String> values = new HashMap<>();
+        private Map<Integer, byte[]> values = new HashMap<>();
 
         private MetadataFragment metadata;
 
@@ -53,11 +73,23 @@ public class StructuredDataFragment extends BundleFragment {
             this.metadata = metadata;
         }
 
-        public void setValue(int index, String value){
-            if(value==null){
+        public void setValue(int index, String trytes){
+            if(trytes==null){
                 values.remove(index);
             }else{
-                values.put(index,value);
+                values.put(index,Trytes.toTrits(trytes));
+            }
+        }
+
+        public void setBooleanValue(int index, boolean b){
+            values.put(index,b?new byte[]{1}:new byte[]{0});
+        }
+
+        public void setTritsValue(int index, byte[] trits){
+            if(trits==null){
+                values.remove(index);
+            }else{
+                values.put(index,trits);
             }
         }
 
@@ -78,22 +110,37 @@ public class StructuredDataFragment extends BundleFragment {
         }
 
         private void buildTransactions(){
-            TransactionBuilder builder = new TransactionBuilder();
-            builder.signatureFragments = "";
-            for(int i = 0; i< metadata.getKeyCount(); i++){
-                FieldDescriptor descriptor = metadata.getDescriptor(i);
-                String value = values.get(i);
-                String trytes = InputValidator.fit(value, descriptor.getTryteSize());
-                builder.signatureFragments += trytes;
-                while(builder.signatureFragments.length() > Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
-                    String remainder = builder.signatureFragments.substring(Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-                    append(builder);
-                    builder = new TransactionBuilder();
-                    builder.signatureFragments = remainder;
-                }
-                builder.signatureFragments = Trytes.padRight(builder.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-                append(builder);
+            int transactionRequired = 1 + (metadata.getTritLength().divide(MESSAGE_SIZE).intValue());
+            byte[] message = new byte[transactionRequired * MESSAGE_SIZE.intValue()];
+            for(Integer keyIndex:values.keySet()){
+                byte[] value = values.get(keyIndex);
+                System.arraycopy(value,0,message,metadata.getOffsetForValueAtIndex(keyIndex).intValue(), value.length);
             }
+            for(int i=0;i<transactionRequired;i++){
+                TransactionBuilder builder = new TransactionBuilder();
+                byte[] msg = new byte[Transaction.Field.SIGNATURE_FRAGMENTS.tritLength];
+                System.arraycopy(message,i*MESSAGE_SIZE.intValue(),msg,0, msg.length);
+                builder.signatureFragments = Trytes.fromTrits(msg);
+                addFirst(builder);
+            }
+//            TransactionBuilder builder = new TransactionBuilder();
+//            byte[] msg = new byte[Transaction.Field.SIGNATURE_FRAGMENTS.tritLength];
+//            for(int i = 0; i< metadata.getKeyCount(); i++){
+//                FieldDescriptor descriptor = metadata.getDescriptor(i);
+//                byte[] value = values.get(i);
+//                if(value==null){
+//                    value = new byte[descriptor.getTritSize().intValue()];
+//                };
+//                System.arraycopy(value);
+//                while(builder.signatureFragments.length() > Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
+//                    String remainder = builder.signatureFragments.substring(Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+//                    append(builder);
+//                    builder = new TransactionBuilder();
+//                    builder.signatureFragments = remainder;
+//                }
+//                append(builder);
+//            }
+//            Utils.padRightSignature(builder);
         }
 
         private void setTags(){
