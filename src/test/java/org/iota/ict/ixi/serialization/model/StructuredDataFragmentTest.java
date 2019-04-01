@@ -8,6 +8,8 @@ import org.iota.ict.utils.Trytes;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.iota.ict.ixi.serialization.util.Utils.asciiFromTrits;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,6 +59,61 @@ public class StructuredDataFragmentTest {
         assertEquals(1,structuredDataFragment.getValue(2)[0]);
     }
 
+    @Test
+    public void listValueTest() {
+        MetadataFragment metadataFragment = buildMetadataFragmentWithList();
+        StructuredDataFragment.Builder builder = new StructuredDataFragment.Builder();
+        builder.setMetadata(metadataFragment);
+        builder.setValue(0, Trytes.fromAscii("Qubic"));
+        builder.setValues(1, Trytes.fromAscii("Qupla"), Trytes.fromAscii("Abra"), Trytes.fromAscii("Java"));
+        StructuredDataFragment structuredDataFragment = builder.build();
+        assertEquals("Qubic", structuredDataFragment.getAsciiValue(0));
+        List<byte[]> values = structuredDataFragment.getListValue(1);
+        assertEquals(3, values.size());
+        assertEquals("Qupla", Utils.asciiFromTrits(values.get(0)));
+        assertEquals("Abra", Utils.asciiFromTrits(values.get(1)));
+        assertEquals("Java", Utils.asciiFromTrits(values.get(2)));
+
+    }
+
+    @Test
+    public void hugeListValueTest() {
+        MetadataFragment metadataFragment = buildMetadataFragmentWithList();
+        StructuredDataFragment.Builder builder = new StructuredDataFragment.Builder();
+        builder.setMetadata(metadataFragment);
+        builder.setValue(0, Trytes.fromAscii("Qubic"));
+        int SIZE = 56;
+        String[] manyValues = new String[SIZE];
+        for(int i=0;i<SIZE;i++){
+            manyValues[i]=Trytes.fromAscii("language_"+i);
+        }
+        builder.setValues(1, manyValues);
+        StructuredDataFragment structuredDataFragment = builder.build();
+        assertEquals("Qubic", structuredDataFragment.getAsciiValue(0));
+        List<byte[]> values = structuredDataFragment.getListValue(1);
+        assertEquals(SIZE, values.size());
+        for(int k=0;k<SIZE;k++) {
+            assertEquals("language_" + k, Utils.asciiFromTrits(values.get(k)));
+        }
+    }
+
+    @Test
+    public void listValueTest2() {
+        MetadataFragment metadataFragment = buildMetadataFragmentWithList2();
+        StructuredDataFragment.Builder builder = new StructuredDataFragment.Builder();
+        builder.setMetadata(metadataFragment);
+        builder.setValue(1, Trytes.fromAscii("Qubic"));
+        builder.setValues(0, Trytes.fromAscii("Qupla"), Trytes.fromAscii("Abra"), Trytes.fromAscii("Java"));
+        StructuredDataFragment structuredDataFragment = builder.build();
+        assertEquals("Qubic", structuredDataFragment.getAsciiValue(1));
+        List<byte[]> values = structuredDataFragment.getListValue(0);
+        assertEquals(3, values.size());
+        assertEquals("Qupla", Utils.asciiFromTrits(values.get(0)));
+        assertEquals("Abra", Utils.asciiFromTrits(values.get(1)));
+        assertEquals("Java", Utils.asciiFromTrits(values.get(2)));
+
+    }
+
     private MetadataFragment buildMetaDataFragment(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
         FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
@@ -80,6 +137,23 @@ public class StructuredDataFragmentTest {
         builder.appendField(name);
         builder.appendField(age);
         builder.appendField(isMale);
+        return builder.build();
+    }
+
+    private MetadataFragment buildMetadataFragmentWithList(){
+        FieldDescriptor project = FieldDescriptor.withAsciiLabel(FieldType.ASCII,243,"name");
+        FieldDescriptor languages = FieldDescriptor.withAsciiLabel(FieldType.ASCII_LIST,243,"languages");
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
+        builder.appendField(project);
+        builder.appendField(languages);
+        return builder.build();
+    }
+    private MetadataFragment buildMetadataFragmentWithList2(){
+        FieldDescriptor project = FieldDescriptor.withAsciiLabel(FieldType.ASCII,243,"name");
+        FieldDescriptor languages = FieldDescriptor.withAsciiLabel(FieldType.ASCII_LIST,243,"languages");
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
+        builder.appendField(languages);
+        builder.appendField(project);
         return builder.build();
     }
 }

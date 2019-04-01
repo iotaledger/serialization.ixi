@@ -1,5 +1,6 @@
 package org.iota.ict.ixi.serialization.model.md;
 
+import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.utils.Trytes;
 
 import java.util.Objects;
@@ -44,5 +45,12 @@ public class FieldType {
     @Override
     public int hashCode() {
         return Objects.hash(trytes);
+    }
+
+    public boolean isSingleValue() {
+        return Utils.toTrits(trytes.charAt(0))[0]==1;
+    }
+    public boolean isMultipleValue() {
+        return Utils.toTrits(trytes.charAt(0))[0]==-1;
     }
 }

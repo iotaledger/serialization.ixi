@@ -6,6 +6,9 @@ import org.iota.ict.utils.Trytes;
 
 import java.math.BigInteger;
 
+import static org.iota.ict.utils.Trytes.TRITS_BY_TRYTE;
+import static org.iota.ict.utils.Trytes.TRYTES;
+
 public class Utils {
 
     public static TransactionBuilder padRightSignature(TransactionBuilder builder){
@@ -48,5 +51,40 @@ public class Utils {
     public static BigInteger integerFromTrits(byte[] trits) {
         byte[] b = completeTritsBeforeConversion(trits);
         return Trytes.toNumber(Trytes.fromTrits(b));
+    }
+
+    public static byte[] toTrits(char tryte) {
+        return TRITS_BY_TRYTE[TRYTES.indexOf(tryte)];
+    }
+
+    public static byte[] readNtritsFromBundleFragment(int n, Transaction t, int startOffset){
+        int availableTritsInCurrentTransaction = Transaction.Field.SIGNATURE_FRAGMENTS.tritLength - startOffset;
+        byte[] trits = new byte[n];
+        int unreadTritsCount = n;
+        int readTritsCount = 0;
+        while(availableTritsInCurrentTransaction<unreadTritsCount){
+            byte[] msgTrits = Trytes.toTrits(t.signatureFragments());
+            System.arraycopy(msgTrits, startOffset, trits, readTritsCount, availableTritsInCurrentTransaction);
+            t = t.getTrunk();
+            readTritsCount +=availableTritsInCurrentTransaction;
+            unreadTritsCount -= availableTritsInCurrentTransaction;
+            availableTritsInCurrentTransaction = Transaction.Field.SIGNATURE_FRAGMENTS.tritLength;
+            startOffset = 0;
+        }
+        if(unreadTritsCount>0){
+            byte[] msgTrits = Trytes.toTrits(t.signatureFragments());
+            System.arraycopy(msgTrits, startOffset, trits, readTritsCount, unreadTritsCount);
+        }
+//        byte[] msgTrits = Trytes.toTrits(t.signatureFragments());
+//        if(startOffset+n < Transaction.Field.SIGNATURE_FRAGMENTS.tritLength){
+//            System.arraycopy(msgTrits, startOffset, trits, 0, n);
+//        }else{
+//            int remainingTrits = Transaction.Field.SIGNATURE_FRAGMENTS.tritLength - startOffset;
+//            int tritsOnNextTransaction = n - remainingTrits;
+//            System.arraycopy(msgTrits, startOffset, trits, 0, remainingTrits);
+//            byte[] nextMsgTrits = Trytes.toTrits(t.getTrunk().signatureFragments());
+//            System.arraycopy(nextMsgTrits, 0, trits, remainingTrits, tritsOnNextTransaction);
+//        }
+        return trits;
     }
 }

@@ -16,8 +16,6 @@ public class MetadataFragment extends BundleFragment {
 
     public static final String METADATA_LANGUAGE_VERSION = "A99";
 
-    public static final int FIELD_DESCRIPTOR_PER_TRANSACTION = ( Transaction.Field.SIGNATURE_FRAGMENTS.tritLength - METADATA_LANGUAGE_VERSION.length() ) / FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH ;
-
     private int keyCount;
     private Map<Integer, BigInteger> valuesOffsets;
     private List<Long> descriptorsOffsets = new ArrayList<>();

@@ -8,18 +8,52 @@ import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class StructuredDataFragment extends BundleFragment {
 
     private static final BigInteger MESSAGE_SIZE = BigInteger.valueOf(Transaction.Field.SIGNATURE_FRAGMENTS.tritLength);
 
+    private static final int LIST_SIZE_FIELD_TRIT_SIZE = 12;
+
     private final MetadataFragment metadataFragment;
+
+    private List<Long> offsets;
+    private long totalSize;
 
     public StructuredDataFragment(Transaction headTransaction, MetadataFragment metadataFragment) {
         super(headTransaction);
         this.metadataFragment = metadataFragment;
+        offsets = new ArrayList<>(metadataFragment.getKeyCount());
+        long currentOffset = 0;
+        Transaction t = headTransaction;
+        int transactionIndex = 0;
+        for(int i=0;i<metadataFragment.getKeyCount();i++){
+            offsets.add(currentOffset);
+            if(currentOffset>((transactionIndex+1)*Transaction.Field.SIGNATURE_FRAGMENTS.tritLength)){
+                t = t.getTrunk();
+                transactionIndex++;
+            }
+            FieldDescriptor descriptor = metadataFragment.getDescriptor(i);
+            if(descriptor.isSingleValue()){
+                long elementLength = descriptor.getTritSize().longValue();
+                currentOffset += elementLength;
+            }else{
+                long listLength = readListSizeAtOffset(t, (int) currentOffset % Transaction.Field.SIGNATURE_FRAGMENTS.tritLength);
+                currentOffset += LIST_SIZE_FIELD_TRIT_SIZE;
+                currentOffset += listLength * descriptor.getTritSize().longValue();
+            }
+        }
+        totalSize = currentOffset;
+    }
+
+    private long readListSizeAtOffset(Transaction t, int offsetInTransaction){
+        byte[] listLengthInTrits = Utils.readNtritsFromBundleFragment(LIST_SIZE_FIELD_TRIT_SIZE, t, offsetInTransaction);
+
+        return Utils.integerFromTrits(listLengthInTrits).longValue();
     }
 
     public boolean hasTailFlag(Transaction transaction){
@@ -35,15 +69,15 @@ public class StructuredDataFragment extends BundleFragment {
         if(descriptor==null) {
             return null;
         }
-        long offset = metadataFragment.getOffsetForValueAtIndex(i).longValue();
+        long offset = offsets.get(i).longValue();
+        int length = (int)  (i+1 == metadataFragment.getKeyCount() ? (totalSize - offset) : offsets.get(i+1) - offset);
         Transaction t = getHeadTransaction();
-        while(offset> Constants.TRANSACTION_SIZE_TRITS){
+        while(offset> Transaction.Field.SIGNATURE_FRAGMENTS.tritLength){
             t = t.getTrunk();
-            offset -= Constants.TRANSACTION_SIZE_TRITS;
+            offset = offset - Transaction.Field.SIGNATURE_FRAGMENTS.tritLength;
         }
-        byte[] trits = Trytes.toTrits(t.signatureFragments());
-        byte[] ret = new byte[(int)descriptor.getTritSize().longValue()];
-        System.arraycopy(trits,(int)offset,ret,0,ret.length);
+
+        byte[] ret  = Utils.readNtritsFromBundleFragment(length, t, (int) offset);
         return ret;
     }
 
@@ -62,33 +96,58 @@ public class StructuredDataFragment extends BundleFragment {
         return value==null?"":Utils.asciiFromTrits(value);
     }
 
+    public List<byte[]> getListValue(int i){
+        byte[] value = getValue(i);
+        FieldDescriptor descriptor = metadataFragment.getDescriptor(i);
+        int elementSize = descriptor.getTritSize().intValue();
+        byte[] listLengthTrits = new byte[LIST_SIZE_FIELD_TRIT_SIZE];
+
+
+        System.arraycopy(value,0,listLengthTrits,0,LIST_SIZE_FIELD_TRIT_SIZE);
+        int listSize = Utils.integerFromTrits(listLengthTrits).intValue();
+
+        List<byte[]> ret = new ArrayList<>(listSize);
+
+        for(int j=0;j<listSize;j++){
+            byte[] v = new byte[elementSize];
+            System.arraycopy(value,(LIST_SIZE_FIELD_TRIT_SIZE+(j*elementSize)),v,0,elementSize);
+            ret.add(v);
+        }
+        return ret;
+    }
+
     public static class Builder extends BundleFragment.Builder {
 
-        private Map<Integer, byte[]> values = new HashMap<>();
+        private Map<Integer, ValueHolder> values = new HashMap<>();
 
         private MetadataFragment metadata;
 
+        List<Long> offsets;
+
+        private BigInteger totalSize;
+
         public void setMetadata(MetadataFragment metadata) {
             this.metadata = metadata;
+            offsets = new ArrayList<>(metadata.getKeyCount());
         }
 
         public void setValue(int index, String trytes){
             if(trytes==null){
                 values.remove(index);
             }else{
-                values.put(index,Trytes.toTrits(trytes));
+                values.put(index,new SingleValueHolder(Trytes.toTrits(trytes)));
             }
         }
 
         public void setBooleanValue(int index, boolean b){
-            values.put(index,b?new byte[]{1}:new byte[]{0});
+            values.put(index,new SingleValueHolder(b?new byte[]{1}:new byte[]{0}));
         }
 
         public void setTritsValue(int index, byte[] trits){
             if(trits==null){
                 values.remove(index);
             }else{
-                values.put(index,trits);
+                values.put(index,new SingleValueHolder(trits));
             }
         }
 
@@ -109,11 +168,28 @@ public class StructuredDataFragment extends BundleFragment {
         }
 
         private void buildTransactions(){
-            int transactionRequired = 1 + (metadata.getTritLength().divide(MESSAGE_SIZE).intValue());
+            computeOffsets();
+            int transactionRequired = 1 + (totalSize.divide(MESSAGE_SIZE).intValue());
             byte[] message = new byte[transactionRequired * MESSAGE_SIZE.intValue()];
-            for(Integer keyIndex:values.keySet()){
-                byte[] value = values.get(keyIndex);
-                System.arraycopy(value,0,message,metadata.getOffsetForValueAtIndex(keyIndex).intValue(), value.length);
+            for(Integer keyIndex:values.keySet()) {
+                ValueHolder valueHolder = values.get(keyIndex);
+                if (valueHolder instanceof SingleValueHolder) {
+                    byte[] value = ((SingleValueHolder)valueHolder).value;
+                    System.arraycopy(value, 0, message, offsets.get(keyIndex).intValue(), value.length);
+                }else if (valueHolder instanceof MultipleValueHolder) {
+                    int elementCount = ((MultipleValueHolder) valueHolder).values.size();
+                    FieldDescriptor descriptor = metadata.getDescriptor(keyIndex);
+                    int elementSize = descriptor.getTritSize().intValue();
+                    byte[] listLengthInTrits = Trytes.toTrits(Trytes.fromNumber(BigInteger.valueOf(((MultipleValueHolder)valueHolder).values.size()),LIST_SIZE_FIELD_TRIT_SIZE/3));
+                    System.arraycopy(listLengthInTrits, 0, message, offsets.get(keyIndex).intValue(), LIST_SIZE_FIELD_TRIT_SIZE);
+                    int index = offsets.get(keyIndex).intValue() + LIST_SIZE_FIELD_TRIT_SIZE;
+                    for(int j=0;j<elementCount;j++){
+                        System.arraycopy(((MultipleValueHolder) valueHolder).values.get(j),0,message,index,elementSize);
+                        index += elementSize;
+                    }
+                }else{
+                    throw new IllegalStateException("Invalid value");
+                }
             }
             for(int i=0;i<transactionRequired;i++){
                 TransactionBuilder builder = new TransactionBuilder();
@@ -122,24 +198,27 @@ public class StructuredDataFragment extends BundleFragment {
                 builder.signatureFragments = Trytes.fromTrits(msg);
                 addFirst(builder);
             }
-//            TransactionBuilder builder = new TransactionBuilder();
-//            byte[] msg = new byte[Transaction.Field.SIGNATURE_FRAGMENTS.tritLength];
-//            for(int i = 0; i< metadata.getKeyCount(); i++){
-//                FieldDescriptor descriptor = metadata.getDescriptor(i);
-//                byte[] value = values.get(i);
-//                if(value==null){
-//                    value = new byte[descriptor.getTritSize().intValue()];
-//                };
-//                System.arraycopy(value);
-//                while(builder.signatureFragments.length() > Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
-//                    String remainder = builder.signatureFragments.substring(Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-//                    append(builder);
-//                    builder = new TransactionBuilder();
-//                    builder.signatureFragments = remainder;
-//                }
-//                append(builder);
-//            }
-//            Utils.padRightSignature(builder);
+        }
+
+        private List<Long> computeOffsets(){
+            long currentOffset = 0;
+            for(int i=0;i<metadata.getKeyCount();i++){
+                offsets.add(currentOffset);
+                FieldDescriptor descriptor = metadata.getDescriptor(i);
+                if(descriptor.isSingleValue()){
+                    currentOffset += descriptor.getTritSize().intValue();
+                }else{
+                    currentOffset += LIST_SIZE_FIELD_TRIT_SIZE;
+                    MultipleValueHolder valueHolder = (MultipleValueHolder) values.get(i);
+                    if(valueHolder!=null){
+                        long elementSize = descriptor.getTritSize().longValue();
+                        int elementCount = valueHolder.values.size();
+                        currentOffset += (elementCount * elementSize);
+                    }
+                }
+            }
+            totalSize = BigInteger.valueOf(currentOffset);
+            return offsets;
         }
 
         private void setTags(){
@@ -153,6 +232,30 @@ public class StructuredDataFragment extends BundleFragment {
 
         private void setMetadataHash(){
             getHead().extraDataDigest = metadata.getHeadTransaction().hash;
+        }
+
+        public void setValues(int i, String... trytes) {
+            MultipleValueHolder holder = new MultipleValueHolder();
+            int elementSize = metadata.getDescriptor(i).getTritSize().intValue();
+            for(String val:trytes){
+                byte[] b = new byte[elementSize];
+                byte[] src = Trytes.toTrits(val);
+                System.arraycopy(src,0, b, 0, src.length);
+                holder.values.add(b);
+            }
+            values.put(i,holder);
+        }
+
+        private class ValueHolder{}
+        private class SingleValueHolder extends ValueHolder{
+            byte[] value;
+
+            public SingleValueHolder(byte[] value) {
+                this.value = value;
+            }
+        }
+        private class MultipleValueHolder extends ValueHolder{
+            List<byte[]> values = new ArrayList<>();
         }
     }
 }

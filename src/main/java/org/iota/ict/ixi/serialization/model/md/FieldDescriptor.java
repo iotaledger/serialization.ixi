@@ -116,4 +116,8 @@ public class FieldDescriptor {
     private static byte[] toTrits(char tryte) {
         return Trytes.TRITS_BY_TRYTE[Trytes.TRYTES.indexOf(tryte)];
     }
+
+    public boolean isSingleValue() {
+        return type.isSingleValue();
+    }
 }
