@@ -1,10 +1,10 @@
 package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
+import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
-import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigInteger;
@@ -57,17 +57,26 @@ public class StructuredDataFragment extends BundleFragment {
     }
 
     public boolean hasTailFlag(Transaction transaction){
-        return Trytes.toTrits(transaction.tag())[5]==1;
+        return isTail(getHeadTransaction());
     }
 
     public boolean hasHeadFlag(Transaction transaction){
+        return isHead(getHeadTransaction());
+    }
+
+    public static boolean isTail(Transaction transaction){
+        return Trytes.toTrits(transaction.tag())[5]==1;
+    }
+
+    public static boolean isHead(Transaction transaction){
         return Trytes.toTrits(transaction.tag())[6]==1;
     }
 
-    public byte[] getValue(int i) {
+    public byte[] getValue(int i) throws UnknownMetadataException {
+        if(metadataFragment==null) throw new UnknownMetadataException();
         FieldDescriptor descriptor = metadataFragment.getDescriptor(i);
         if(descriptor==null) {
-            return null;
+            throw new IndexOutOfBoundsException(i+" is not a valid field index for this fragment.");
         }
         long offset = offsets.get(i).longValue();
         int length = (int)  (i+1 == metadataFragment.getKeyCount() ? (totalSize - offset) : offsets.get(i+1) - offset);
@@ -81,22 +90,22 @@ public class StructuredDataFragment extends BundleFragment {
         return ret;
     }
 
-    public boolean getBooleanValue(int i){
+    public boolean getBooleanValue(int i) throws UnknownMetadataException {
         byte[] value = getValue(i);
         return value==null?null:value[0]==1;
     }
 
-    public BigInteger getIntegerValue(int i){
+    public BigInteger getIntegerValue(int i) throws UnknownMetadataException {
         byte[] value = getValue(i);
         return value==null?null:Utils.integerFromTrits(value);
     }
 
-    public String getAsciiValue(int i){
+    public String getAsciiValue(int i) throws UnknownMetadataException {
         byte[] value = getValue(i);
         return value==null?"":Utils.asciiFromTrits(value);
     }
 
-    public List<byte[]> getListValue(int i){
+    public List<byte[]> getListValue(int i) throws UnknownMetadataException {
         byte[] value = getValue(i);
         FieldDescriptor descriptor = metadataFragment.getDescriptor(i);
         int elementSize = descriptor.getTritSize().intValue();
@@ -126,29 +135,33 @@ public class StructuredDataFragment extends BundleFragment {
 
         private BigInteger totalSize;
 
-        public void setMetadata(MetadataFragment metadata) {
+        public Builder setMetadata(MetadataFragment metadata) {
             this.metadata = metadata;
             offsets = new ArrayList<>(metadata.getKeyCount());
+            return this;
         }
 
-        public void setValue(int index, String trytes){
+        public Builder setValue(int index, String trytes){
             if(trytes==null){
                 values.remove(index);
             }else{
                 values.put(index,new SingleValueHolder(Trytes.toTrits(trytes)));
             }
+            return this;
         }
 
-        public void setBooleanValue(int index, boolean b){
+        public Builder setBooleanValue(int index, boolean b){
             values.put(index,new SingleValueHolder(b?new byte[]{1}:new byte[]{0}));
+            return this;
         }
 
-        public void setTritsValue(int index, byte[] trits){
+        public Builder setTritsValue(int index, byte[] trits){
             if(trits==null){
                 values.remove(index);
             }else{
                 values.put(index,new SingleValueHolder(trits));
             }
+            return this;
         }
 
         public StructuredDataFragment build(){
@@ -223,18 +236,18 @@ public class StructuredDataFragment extends BundleFragment {
 
         private void setTags(){
             if(getTransactionCount()==1){
-                getTail().tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 0, 1, 1 ,0}), Transaction.Field.TAG.tryteLength);
+                getTail().tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 0, 0, 0 ,1 , 1, 0, 0}), Transaction.Field.TAG.tryteLength);
             }else{
-                getTail().tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 0, 1, 0 ,0}), Transaction.Field.TAG.tryteLength);
-                getHead().tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 0, 0, 1 ,0}), Transaction.Field.TAG.tryteLength);
+                getTail().tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 0, 0, 0 ,1 , 0, 0, 0}), Transaction.Field.TAG.tryteLength);
+                getHead().tag = Trytes.padRight(Trytes.fromTrits(new byte[] { 0, 0, 0, 0, 0 ,0 , 1, 0, 0}), Transaction.Field.TAG.tryteLength);
             }
         }
 
         private void setMetadataHash(){
-            getHead().extraDataDigest = metadata.getHeadTransaction().hash;
+            getHead().extraDataDigest = metadata.hash();
         }
 
-        public void setValues(int i, String... trytes) {
+        public Builder setValues(int i, String... trytes) {
             MultipleValueHolder holder = new MultipleValueHolder();
             int elementSize = metadata.getDescriptor(i).getTritSize().intValue();
             for(String val:trytes){
@@ -244,6 +257,7 @@ public class StructuredDataFragment extends BundleFragment {
                 holder.values.add(b);
             }
             values.put(i,holder);
+            return this;
         }
 
         private class ValueHolder{}

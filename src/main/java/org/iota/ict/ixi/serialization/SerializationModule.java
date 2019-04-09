@@ -1,11 +1,17 @@
 package org.iota.ict.ixi.serialization;
 
+import org.iota.ict.eee.EffectListener;
+import org.iota.ict.eee.Environment;
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.serialization.model.MetadataFragment;
+import org.iota.ict.ixi.serialization.model.Predicate;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
-import org.iota.ict.ixi.serialization.util.InputValidator;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
+import org.iota.ict.ixi.serialization.util.Utils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SerializationModule extends IxiModule {
 
@@ -13,9 +19,18 @@ public class SerializationModule extends IxiModule {
         super(ixi);
     }
 
+    private Map<String, MetadataFragment> metadatas = new HashMap<>();
+    private Map<Predicate, EffectListener<StructuredDataFragment>> listeners = new HashMap<>();
+
     @Override
     public void run() {
         //TODO
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        ixi.addListener(new BundleListener(this));
     }
 
     public MetadataFragment buildMetadataFragment(MetadataFragment.Builder builder){
@@ -38,7 +53,7 @@ public class SerializationModule extends IxiModule {
      * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
      */
     public MetadataFragment loadMetadata(String transactionHash){
-        if(!InputValidator.isValidHash(transactionHash)){
+        if(!Utils.isValidHash(transactionHash)){
             throw new IllegalArgumentException("'"+transactionHash+"' is not a valid transaction hash");
         }
         //TODO
@@ -52,7 +67,7 @@ public class SerializationModule extends IxiModule {
      *  @throws UnknownMetadataException when referenced metadata is unknown or invalid
      */
     public StructuredDataFragment loadStructuredData(String transactionHash) throws UnknownMetadataException {
-        if(!InputValidator.isValidHash(transactionHash)){
+        if(!Utils.isValidHash(transactionHash)){
             throw new IllegalArgumentException("'"+transactionHash+"' is not a valid transaction hash");
         }
         //TODO
@@ -64,9 +79,8 @@ public class SerializationModule extends IxiModule {
      * @throws IndexOutOfBoundsException when index is invalid
      * @throws UnknownMetadataException when referenced metadata is unknown or invalid
      */
-    public String getTrytesForKeyAtIndex(StructuredDataFragment dataFragment, int index){
-        //TODO
-        return null;
+    public byte[] getTritsForKeyAtIndex(StructuredDataFragment dataFragment, int index) throws UnknownMetadataException {
+        return dataFragment.getValue(index);
     }
 
     /**
@@ -79,4 +93,24 @@ public class SerializationModule extends IxiModule {
         return null;
     }
 
+    void registerMetadata(MetadataFragment metadataFragment){
+        metadatas.put(metadataFragment.hash(), metadataFragment);
+    }
+
+    MetadataFragment getMetadataFrament(String hash){
+        return metadatas.get(hash);
+    }
+
+    public void registerDataEffectListener(Predicate predicate, EffectListener<StructuredDataFragment> listener) {
+        //ixi.addListener(listener);
+        listeners.put(predicate, listener);
+    }
+
+    public void notifyListeners(StructuredDataFragment structuredDataFragment) {
+        for(Predicate predicate:listeners.keySet()){
+            if(predicate.match(structuredDataFragment)){
+                listeners.get(predicate).onReceive(structuredDataFragment);
+            }
+        }
+    }
 }

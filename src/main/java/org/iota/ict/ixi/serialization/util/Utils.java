@@ -75,16 +75,13 @@ public class Utils {
             byte[] msgTrits = Trytes.toTrits(t.signatureFragments());
             System.arraycopy(msgTrits, startOffset, trits, readTritsCount, unreadTritsCount);
         }
-//        byte[] msgTrits = Trytes.toTrits(t.signatureFragments());
-//        if(startOffset+n < Transaction.Field.SIGNATURE_FRAGMENTS.tritLength){
-//            System.arraycopy(msgTrits, startOffset, trits, 0, n);
-//        }else{
-//            int remainingTrits = Transaction.Field.SIGNATURE_FRAGMENTS.tritLength - startOffset;
-//            int tritsOnNextTransaction = n - remainingTrits;
-//            System.arraycopy(msgTrits, startOffset, trits, 0, remainingTrits);
-//            byte[] nextMsgTrits = Trytes.toTrits(t.getTrunk().signatureFragments());
-//            System.arraycopy(nextMsgTrits, 0, trits, remainingTrits, tritsOnNextTransaction);
-//        }
         return trits;
     }
+
+    public static boolean isValidHash(String hash) {
+        if(hash == null)
+            return false;
+        return hash.matches("^[A-Z9]{81,81}$");
+    }
+
 }

@@ -14,7 +14,13 @@ To do this, we define 2 new types of bundle fragments.
 
 ### Bundle fragment
 
-A bundle fragment is a portion of [standard IOTA bundle](https://docs.iota.org/docs/getting-started/0.1/introduction/what-is-a-bundle). Transactions in a bundle fragment are ordered by their trunk transaction (this characteristic is inherited from IOTA bundle). Just like IOTA bundles, bundle fragments have a head transaction and a tail transaction (which can be the same transaction when the bundle fragment contains only one transaction). We set a specific trit in the tag field to 1 to mark the head transaction of a bundle fragment. We set another trit of the tag field to 1 to mark the tail transaction of a bundle fragment. Those 2 trits must be 0 in all body transactions.
+A bundle fragment is a portion of [standard IOTA bundle](https://docs.iota.org/docs/getting-started/0.1/introduction/what-is-a-bundle). 
+Transactions in a bundle fragment are ordered by their trunk transaction (this characteristic is inherited from IOTA bundle). 
+Just like IOTA bundles, bundle fragments have a head transaction and a tail transaction (which can be the same transaction when the bundle fragment contains only one transaction). 
+We set a specific trit in the tag field to 1 to mark the head transaction of a bundle fragment. 
+We set another trit of the tag field to 1 to mark the tail transaction of a bundle fragment. Those 2 trits must be 0 in all body transactions.
+
+We define the **BundleFragmentHash** as the hash (curl, 27 round) of the concatenation of all signature_of_message_fragment field (ordered from head to tail).
 
 ### meta-data bundle fragment
 
@@ -45,23 +51,50 @@ A *field descriptor* is composed of 3 components of fixed size:
 
 If required, the sequence of field descriptor can be encoded in multiple transactions.
 
-
 Order of field descriptor define the order of the field values that will be found in the structured data fragment.
 
+The BundleFragmentHash of a Metadata fragment is called the **ClassHash**.
+
+A MetadataFragment don't necessarily need to be published on the tangle. The publisher and subscriber(s) may just have 
+a static knowledge of the class being serialized (i.e. FieldDescriptors sequence) to be able to successfully submit/receive structured data. 
 
 ### structured-data bundle fragment
 
-A structured-data bundle fragment is a bundle-fragment using trit at tag[6] set to 1 to indicate the bundle fragment head transaction and the trit at tag[5] to indicate the tail transaction. 
+A structured-data bundle fragment is a bundle-fragment using trit at tag[6] set to 1 to indicate the bundle fragment 
+head transaction and the trit at tag[5] to indicate the tail transaction. 
 
-Extra-data digest field of the head transaction is a pointer to the head transaction of the corresponding meta-data fragment.
-The signature_or_message fragment contains the data. values are of course ordered and sized according field descriptor sequence of the meta-data fragment.
+Extra-data digest field of each transaction in a StructuredDataFragment contains the ClassHash of the corresponding MetadataFragment.
 
+The signature_or_message fragment contains the data. Values are of course ordered and sized according field descriptor sequence of the meta-data fragment.
+
+//TODO : update picture to new design !
 ![bundles](https://github.com/iotaledger/serialization.ixi/blob/master/docs/serialization.png?raw=true)
 
 <small>*Metadata and StructuredData are represented in 2 different bundles here, but they could be in the same bundle.*</small>
 
 ### API
 
+#### Publisher API (serialize)
+
+//TODO
+
+#### Subscriber API (deserialize)
+
+//WIP
+
+A subscriber can register a listener to receive StructuredDataFragment of interest.
+
+DataFragment of interest are determined by a Predicate. The Predicate API is fairly simple and contains only one `match` method.
+
+For instance, to receive all StructuredDataFragment with a given classHash, the subscriber must call :
+
+```
+registerDataListener(new Predicate{
+        public boolean match(StructuredDataFragment fragment){
+            return fragment.headTransaction.extraDigest().equals(myClassHash);
+        }
+})
+``` 
 
 ```
 MetadataFragment buildMetadataFragment(MetadataFragmentBuilder builder);
@@ -69,17 +102,17 @@ MetadataFragment buildMetadataFragment(MetadataFragmentBuilder builder);
 StructuredDataFragment buildStructuredFragment(StructuredFragmentBuilder builder);
 
 /**
- *  @return the MetadataFragment including transaction with transactionHash, 
- *           or null if the transaction is not part of a valid MetadataFragment. 
+ *  @return the MetadataFragment with bundleHeadTransaction identified by bundleHeadTransactionHash, 
+ *           or null if the transaction is not the head of a valid MetadataFragment. 
  */
-MetadataFragment loadMetadata(String transactionHash);
+MetadataFragment loadMetadata(String bundleHeadTransactionHash);
 
 /**
- *  @return the StructuredDataFragment including transaction with transactionHash, 
- *          or null if the transaction is not part of a valid StructuredDataFragment. 
+ *  @return the StructuredDataFragment with bundleHeadTransaction identified by bundleHeadTransactionHash, 
+ *          or null if the transaction is not the head of a valid StructuredDataFragment. 
  *  @throws UnknownMetadataException when referenced metadata is unknown or invalid
  */
-StructuredDataFragment loadStructuredData(String transactionHash);
+StructuredDataFragment loadStructuredData(String bundleHeadTransactionHash);
 
 /**
  * @return the value in trytes of key at index

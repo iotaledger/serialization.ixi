@@ -1,5 +1,7 @@
 package org.iota.ict.ixi.serialization.model;
 
+import com.iota.curl.IotaCurlHash;
+import com.iota.curl.IotaCurlUtils;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
@@ -8,6 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 public abstract class BundleFragment {
+
+    public static int CURL_ROUNDS_BUNDLE_FRAGMANT_HASH = 27;
 
     private Transaction headTransaction;
 
@@ -25,6 +29,15 @@ public abstract class BundleFragment {
             tail = tail.getTrunk();
         }
         return tail;
+    }
+
+    public String hash(){
+        StringBuilder sb = new StringBuilder(headTransaction.signatureFragments());
+        Transaction tx = headTransaction;
+        while(!tx.isBundleTail){
+            sb.append(tx.signatureFragments());
+        }
+        return IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_BUNDLE_FRAGMANT_HASH);
     }
 
     abstract boolean hasTailFlag(Transaction t);
