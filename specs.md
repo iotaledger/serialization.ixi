@@ -43,6 +43,8 @@ A *field descriptor* is composed of 3 components of fixed size:
     Note that a Boolean field should have a size of 1 and a TransactionHash field should have a size of 243.
 - The <u>label</u> component (141 trits) is a human readable description  (ascii encoded) of the field.
 
+![descriptor](docs/descriptor.png)
+
 If required, the sequence of field descriptor can be encoded in multiple transactions.
 
 Order of field descriptor define the order of the field values that will be found in the structured data fragment.
