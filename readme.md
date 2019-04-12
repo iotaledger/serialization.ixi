@@ -7,122 +7,225 @@ In order to achieve maximal flexibility, but also to favorise interoperability b
 2. services to store structured data to the tangle
 3. a framework to define the structure of the data
 
-To do this, we define 2 new types of bundle fragments.
+To do this, we define 2 new types of `BundleFragment`.
 
- - The structured-data fragment to store the data itself.
- - The meta-data fragment to describe the structured-data fragment.
+ - The `StructuredDataFragment` to store the data itself.
+ - The `MetadataFragment` to describe the content of the StructuredDataFragment.
 
-### Bundle fragment
+For more details regarding the serialization format: please read specs.md
 
-A bundle fragment is a portion of [standard IOTA bundle](https://docs.iota.org/docs/getting-started/0.1/introduction/what-is-a-bundle). 
-Transactions in a bundle fragment are ordered by their trunk transaction (this characteristic is inherited from IOTA bundle). 
-Just like IOTA bundles, bundle fragments have a head transaction and a tail transaction (which can be the same transaction when the bundle fragment contains only one transaction). 
-We set a specific trit in the tag field to 1 to mark the head transaction of a bundle fragment. 
-We set another trit of the tag field to 1 to mark the tail transaction of a bundle fragment. Those 2 trits must be 0 in all body transactions.
+The document is more focused on public API provided by Serialization.ixi
 
-We define the **BundleFragmentHash** as the hash (curl, 27 round) of the concatenation of all signature_of_message_fragment field (ordered from head to tail).
+### Overview
 
-### meta-data bundle fragment
+The main api of Serialization.ixi follow the publish/subscribe model where Serialization.ixi is pushing the data to the subscriber as soon as it is available.
 
-A meta-data bundle fragment is a bundle-fragment using trit at tag[4] set to 1 to indicate the bundle fragment head transaction and the trit at tag[3] to indicate the tail transaction. 
+Another way to use it is to pull the data from the Tangle, but to use it: you need to know the MetadataFragment and 
+the transaction hash of the StructuredDataFragment. (this is described at the end of this document)
 
-The signatureMessageFragment of a meta-data bundle fragment contains a non-empty sequence of *field descriptor*.
+#### Publisher
 
-A *field descriptor* is composed of 3 components of fixed size:
+To publish data on the tangle, a publisher need to :
+1. build a MetadataFragment.
+2. compute the ClassHash for it's MetadataFragment. (see specs.md for details)
+3. (optional) attach the MetadataFragment to the Tangle.
+4. build a StructuredDataFragment.
+5. include the StructuredDataFragment in a Bundle.
+6. attach the Bundle to the Tangle.
 
-- The <u>type</u> component (6 trits) indicates the cardinality and optionally the way to interpret the value  
-    - the first trit is called the cardinality trit. 
-        - A cardinality trit 1 indicates that the field is a "single value" 
-        - A cardinality trit -1 indicates that the field is a "multiple value" 
-        - A cardinality trit 0 is illegal 
-    - the 5 following trits indicates how to interpret the (mutiple-)value(s).
-        - 0,0,0,0,0 indicates an unspecified field (i.e. just 'trits')
-        - 1,0,0,0,0 denotes an Integer 
-        - 0,1,0,0,0 denotes an Boolean 
-        - 0,0,1,0,0 denotes an Float 
-        - 0,0,0,1,0 denotes a TransactionHash 
-        - 0,0,0,0,1 denotes an encode ascii value 
-        - (other trit sequences are 'reserved' for future use)
-- The <u>size</u> component (X trits) indicates either :
-    - the size of the field in trits (when cardinality is "single value")
-    - the size of one element of the list (when cardinality is "multiple values")
-    Note that a Boolean field should have a size of 1 and a TransactionHash field should have a size of 243.
-- The <u>label</u> component (Y trits) is a human readable description  (ascii encoded) of the field.
+#### Subscriber
 
-If required, the sequence of field descriptor can be encoded in multiple transactions.
+Anyone (i.e. any other ixi) interested by the data published on the Tangle have to do the following to receive the data :
 
-Order of field descriptor define the order of the field values that will be found in the structured data fragment.
-
-The BundleFragmentHash of a Metadata fragment is called the **ClassHash**.
-
-A MetadataFragment don't necessarily need to be published on the tangle. The publisher and subscriber(s) may just have 
-a static knowledge of the class being serialized (i.e. FieldDescriptors sequence) to be able to successfully submit/receive structured data. 
-
-### structured-data bundle fragment
-
-A structured-data bundle fragment is a bundle-fragment using trit at tag[6] set to 1 to indicate the bundle fragment 
-head transaction and the trit at tag[5] to indicate the tail transaction. 
-
-Extra-data digest field of each transaction in a StructuredDataFragment contains the ClassHash of the corresponding MetadataFragment.
-
-The signature_or_message fragment contains the data. Values are of course ordered and sized according field descriptor sequence of the meta-data fragment.
-
-//TODO : update picture to new design !
-![bundles](https://github.com/iotaledger/serialization.ixi/blob/master/docs/serialization.png?raw=true)
-
-<small>*Metadata and StructuredData are represented in 2 different bundles here, but they could be in the same bundle.*</small>
+1. Registering one (or more) MetadataFragment of interest
+2. Registering one (or more) data listener to be notified when new data comes in.
+3. Implementing one (or more) handler to process the data
 
 ### API
 
-#### Publisher API (serialize)
+#### High level API
 
-//TODO
+To simplify the publication process, this IXI provides a high level API making use of annotated java class
+to define the Metadata.
 
-#### Subscriber API (deserialize)
+Example :
 
-//WIP
-
-A subscriber can register a listener to receive StructuredDataFragment of interest.
-
-DataFragment of interest are determined by a Predicate. The Predicate API is fairly simple and contains only one `match` method.
-
-For instance, to receive all StructuredDataFragment with a given classHash, the subscriber must call :
+Start by defining a data class with required annotations :
 
 ```
-registerDataListener(new Predicate{
-        public boolean match(StructuredDataFragment fragment){
-            return fragment.headTransaction.extraDigest().equals(myClassHash);
-        }
-})
-``` 
+public class Sample {
+
+    @SerializableField(index=0, tritLength = 1, label = "isTest", fieldType = FieldType.BOOLEAN)
+    public boolean isTest;
+    
+    @SerializableField(index=1, tritLength = 99, label = "myLabel", fieldType = FieldType.ASCII)
+    public boolean myLabel;
+    
+    @SerializableField(index=2, tritLength = 243, label = "aReference", fieldType = FieldType.HASH)
+    public String aReferenceHash;
+    
+    @SerializableField(index=3, tritLength = 243, label = "aReferenceList", fieldType = FieldType.HASH_LIST)
+    public List<String> listOfReferences;
+}
+```
+Notes :
+ 1. each field have an index. All indexes MUST be different and be continuous. (i.e. defining a field at index 0 ,1 and 3 is illegal because index 2 is missing)
+ 2. serializable fields are public (to simplify implementation)
+ 3. a set of field types are predefined : Integer, Decimal, Ascii, Boolean, Hash(243 trits), and their *list* variation: 
+ IntegerList, DecimalList, AsciiList, BooleanList and HashList
+ 
+##### Publishing/serializing
+
+To publish this data on the Tangle, one can use the following code:
 
 ```
-MetadataFragment buildMetadataFragment(MetadataFragmentBuilder builder);
-
-StructuredDataFragment buildStructuredFragment(StructuredFragmentBuilder builder);
-
-/**
- *  @return the MetadataFragment with bundleHeadTransaction identified by bundleHeadTransactionHash, 
- *           or null if the transaction is not the head of a valid MetadataFragment. 
- */
-MetadataFragment loadMetadata(String bundleHeadTransactionHash);
-
-/**
- *  @return the StructuredDataFragment with bundleHeadTransaction identified by bundleHeadTransactionHash, 
- *          or null if the transaction is not the head of a valid StructuredDataFragment. 
- *  @throws UnknownMetadataException when referenced metadata is unknown or invalid
- */
-StructuredDataFragment loadStructuredData(String bundleHeadTransactionHash);
-
-/**
- * @return the value in trytes of key at index
- * @throws IndexOutBoundException when index is invalid
- */
-String getTrytesForKeyAtIndex(StructuredDataFragment dataFragment, int index)
-
-/**
- * @return the value of key at index
- * @throws IndexOutBoundException when index is invalid
- */
-Object getValueAtIndex(StructuredDataFragment dataFragment, int index)
+Sample myData = new Sample();
+myData.isTest = true;
+myData.myLabel = "hello world";
+...
+serializationModule.publish(myData);
 ```
+This code will do all required steps: build a StructuredDataBundleFragment, encapsulate the fragment in a Bundle 
+(containing only the structuredDataFragment) and send the data to the tangle.
+Note that this simple call will "attach" the Bundle to the genesis, so an alternative API can be used to specify the trunk and branch to reference :
+
+```
+serializationModule.publish(myData, referencedTrunkHash, referencedBranchHash);
+```
+
+Using `publish(...)` will publish a Bundle containing one single StructuredDataFragment and nothing more. 
+It can be handy in some cases, but in general, a StructuredDataFragment can be included in an arbitrary Bundle
+with other transactions.
+
+Crafting a complete arbitrary Bundle is not in the scope of this ixi, but it provide a simple API to craft a 
+*PreparedDataFragment* that can be used later to include a StructuredDataFragment in more complex Bundle.
+
+```
+Sample myData = new Sample();
+myData.isTest = true;
+myData.myLabel = "hello world";
+...
+PreparedDataFragment preparedData = serializationModule.prepare(myData);
+...
+BundleBuilder bundleBuilder = new BundleBuilder();
+...
+
+List<TransactionBuilder> transactionBuilders = preparedData.fromTailToHead();
+bundleBuilder.append(transactionBuilders);
+...
+Bundle bundle = bundleBuilder.build();
+```
+
+##### Subscribing/deserializing
+
+Again, this IXI provides a very simple API to register a listener for a particular annotated class:
+```
+serializationModule.registerDataListener(Class<T> aTangleSerializableClass,
+                                         T -> {
+                                              //process the data
+                                         });
+```
+Using this API will take care of registering the required MetadataFragment and filtering fragment of the given class.
+
+An alternative to specify a more complex filter:
+```
+serializationModule.registerDataListener(
+                                         T -> {
+                                             //return true when fragment must be processed by the listener
+                                         },
+                                         T -> {
+                                              //process the data
+                                         });
+```
+
+#### Low level API
+
+Instead of using annotated java classes to use Serialization.ixi,
+one can manipulate MetadataFragment and StructuredDataFragment directly.
+
+Going this way requires of course a 'in depth' understanding of the underlying architecture 
+(read specs.md for details) 
+
+##### MetadataFragment
+
+The MetadataFragment.Builder class is the entry point to create MetadataFragment.
+Building a MetadataFragment consist essentially in appending FieldDescriptor to the MetadataFragment.
+A fieldDescriptor describe a serialized field and match exactly the `@SerializableField` annotation presented earlier.
+
+```
+FieldDescriptor name = FieldDescriptor.withAsciiLabel(FieldType.TYPE_ASCII,243,"name");
+FieldDescriptor age = FieldDescriptor.withAsciiLabel(FieldType.TYPE_INTEGER,7,"age");
+FieldDescriptor isMale = FieldDescriptor.withAsciiLabel(FieldType.TYPE_BOOLEAN,1,"isMale");
+MetadataFragment metadatafragment =  new MetadataFragment.Builder()
+                                            .appendField(name)
+                                            .appendField(age)
+                                            .appendField(isMale)
+                                            .build();
+```
+
+##### Build a StructuredDataFragment
+
+Similarly, a StructuredDataFragment is build with a `StructureDataFragment.Builder`.
+To build a StructuredDataFragment by hand, you need to corresponding MetadataFragment, and then you just have to
+assign values to fields (fields being identified by their index). Note that values MUST be byte[] (one trit encoded in one byte)
+
+```
+StructuredDataFragment dataFragment = new StructuredDataFragment.Builder()
+                                            .setMetadata(metadataFragment)
+                                            .setValue(0, Trytes.fromAscii("my name"))
+                                            .setValue(1, Trytes.fromNumber(BigInteger.valueOf(47),2))
+                                            .setBooleanValue(2, true)
+                                            .build();
+```
+
+##### Receive a StructuredDataFragment
+
+To receive dataFragment: 
+1. register the the metadataFragment you need
+2. register a dataListener for the StructuredDataFragment class and it's associated DataFragmentFilter
+
+```
+MetadataFragment metadataFragment = ...;
+serializationModule.registerMetadata(metadataFragment);
+final String classHash = metadataFragment.getClassHash();
+DataFragmentFilter matcher = new DataFragmentFilter() {
+    @Override
+    public boolean match(StructuredDataFragment dataFragment) {
+        return dataFragment.getClassHash().equals(classHash);
+    }
+};
+
+DataListener<StructuredDataFragment> wrappedListener = new DataListener<StructuredDataFragment>() {
+    @Override
+    public void onData(StructuredDataFragment dataFragment) {
+        //process dataFragment
+    }
+};
+
+serializationModule.registerDataListener(matcher, wrappedListener);
+```
+
+##### Read a StructuredDataFragment
+
+Fields of a StructuredDataFragment are identified by index and different getter are available
+to read a typed value, or a list of values.
+There is also a generic getter to read any field as trits (encoded in byte[])
+
+```
+String ascii = structuredDataFragment.getAsciiValue(0);
+Integer age = structuredDataFragment.getIntegerValue(1);
+boolean isMale = structuredDataFragment.getBooleanValue(2);
+List<byte[]> values = structuredDataFragment.getListValues(2);
+```
+
+### Pull data API
+
+To pull data from the Tangle you can use one of those methods:
+```
+MyClass myPulledData = serializationModule.loadData(transactionHash, MyClass.class);
+```
+or 
+```
+StructuredData myPulledData = serializationModule.loadData(transactionHash, metadataFragment);
+```
+This is useful when receiving a dataFragment where other fragments are referenced in a HASH (or HASH_LIST) field.

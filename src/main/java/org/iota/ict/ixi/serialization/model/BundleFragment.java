@@ -43,9 +43,32 @@ public abstract class BundleFragment {
     abstract boolean hasTailFlag(Transaction t);
     abstract boolean hasHeadFlag(Transaction t);
 
-    public static class Builder {
+    public abstract static class Builder<T> {
 
         private final LinkedList<TransactionBuilder> tailToHead = new LinkedList<>();
+        private boolean isHeadFragment = true;
+        private boolean isTailFragment = true;
+        private String referencedTrunk;
+        private String referencedBranch;
+
+        abstract public T build();
+
+        public void setIsHeadFragment(boolean isHeadFragment){
+            this.isHeadFragment = isHeadFragment;
+        }
+        public void setIsTailFragment(boolean isTailFragment){
+            this.isTailFragment = isTailFragment;
+        }
+
+        public Builder<T> setReferencedBranch(String referencedBranch) {
+            this.referencedBranch = referencedBranch;
+            return this;
+        }
+
+        public Builder<T> setReferencedTrunk(String referencedTrunk) {
+            this.referencedTrunk = referencedTrunk;
+            return this;
+        }
 
         public void append(List<TransactionBuilder> unfinishedTransactionsFromTailToHead) {
             for (TransactionBuilder unfinishedTransaction : unfinishedTransactionsFromTailToHead)
@@ -76,14 +99,37 @@ public abstract class BundleFragment {
             return buildTrunkLinkedChainAndReturnHead();
         }
 
+        protected void setBundleBoundaries(){
+            for(TransactionBuilder builder: tailToHead){
+                builder.isBundleHead = false;
+                builder.isBundleTail = false;
+            }
+            if(isHeadFragment){
+                getHead().isBundleHead = true;
+            }
+            if(isTailFragment){
+                getTail().isBundleTail = true;
+            }
+        }
         private Transaction buildTrunkLinkedChainAndReturnHead() {
 
             Transaction lastTransaction = null;
             for (int i = 0; i < tailToHead.size(); i++) {
                 boolean isFirst = i == 0;
+
                 TransactionBuilder unfinished = tailToHead.get(i);
-                if (!isFirst)
+
+                if (!isFirst) {
                     unfinished.trunkHash = lastTransaction.hash;
+                }else {
+                    if(referencedTrunk!=null){
+                        unfinished.trunkHash = referencedTrunk;
+                    }
+                }
+                if(referencedBranch!=null) {
+                    unfinished.branchHash = referencedBranch;
+                }
+
                 Transaction currentTransaction = unfinished.build();
                 currentTransaction.setTrunk(lastTransaction);
                 lastTransaction = currentTransaction;
@@ -91,5 +137,6 @@ public abstract class BundleFragment {
 
             return lastTransaction;
         }
+
     }
 }

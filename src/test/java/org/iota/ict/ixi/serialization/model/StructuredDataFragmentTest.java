@@ -1,6 +1,7 @@
 package org.iota.ict.ixi.serialization.model;
 
 
+import org.iota.ict.ixi.TestUtils;
 import org.iota.ict.ixi.serialization.SampleData;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 import org.iota.ict.ixi.serialization.util.Utils;
@@ -8,6 +9,7 @@ import org.iota.ict.utils.Trytes;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.iota.ict.ixi.serialization.util.Utils.asciiFromTrits;
@@ -124,5 +126,19 @@ public class StructuredDataFragmentTest {
 
     }
 
+    @Test
+    public void serializeClassInstance() throws UnknownMetadataException {
+        SampleSerializableClass sample = SampleData.sample;
 
+        StructuredDataFragment dataFragment = new StructuredDataFragment.Builder().fromInstance(sample).build();
+
+        assertEquals(true, dataFragment.getBooleanValue(0));
+        assertEquals("aLabel", dataFragment.getAsciiValue(1));
+        assertEquals(sample.aReferenceHash, dataFragment.getTrytesValue(2));
+        List<String> values = dataFragment.getTryteList(3);
+        for(int i=0;i<50;i++){
+            assertEquals(sample.listOfReferences.get(i),values.get(i));
+        }
+        assertEquals(17, dataFragment.getIntegerValue(4).intValue());
+    }
 }

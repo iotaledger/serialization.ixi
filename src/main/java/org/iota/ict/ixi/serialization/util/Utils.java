@@ -1,5 +1,6 @@
 package org.iota.ict.ixi.serialization.util;
 
+import org.iota.ict.ixi.serialization.SerializationModule;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
@@ -65,7 +66,12 @@ public class Utils {
         while(availableTritsInCurrentTransaction<unreadTritsCount){
             byte[] msgTrits = Trytes.toTrits(t.signatureFragments());
             System.arraycopy(msgTrits, startOffset, trits, readTritsCount, availableTritsInCurrentTransaction);
-            t = t.getTrunk();
+            if(t.getTrunk()==null){
+                System.out.println("current t is "+t.hash+" isBundleHead :"+t.isBundleHead+" isBundleTail:"+t.isBundleTail);
+                t = SerializationModule.INSTANCE.findTransaction(t.trunkHash());
+            }else {
+                t = t.getTrunk();
+            }
             readTritsCount +=availableTritsInCurrentTransaction;
             unreadTritsCount -= availableTritsInCurrentTransaction;
             availableTritsInCurrentTransaction = Transaction.Field.SIGNATURE_FRAGMENTS.tritLength;
@@ -84,4 +90,12 @@ public class Utils {
         return hash.matches("^[A-Z9]{81,81}$");
     }
 
+    public static Boolean booleanFromTrits(byte[] value) {
+        return value==null? null : value[0] == 1;
+    }
+
+    public static Float floatFromTrits(byte[] value) {
+        //TODO
+        return null;
+    }
 }

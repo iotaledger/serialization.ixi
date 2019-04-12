@@ -120,4 +120,24 @@ public class FieldDescriptor {
     public boolean isSingleValue() {
         return type.isSingleValue();
     }
+
+    public boolean isInteger() {
+        return type.isInteger();
+    }
+
+    public boolean isAscii() {
+        return type.isAscii();
+    }
+
+    public boolean isHash() {
+        return type.isHash();
+    }
+
+    public boolean isBoolean() {
+        return type.isBoolean();
+    }
+
+    public boolean isFloat() {
+        return type.isFloat();
+    }
 }

@@ -1,12 +1,14 @@
 package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
+import org.iota.ict.ixi.serialization.model.md.FieldType;
+import org.iota.ict.ixi.serialization.util.SerializableField;
 import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
-import java.math.BigInteger;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +46,9 @@ public class MetadataFragment extends BundleFragment {
     }
 
     public FieldDescriptor getDescriptor(int i) {
-        assert i < keyCount;
+        if(!( i < keyCount)){
+            throw new IndexOutOfBoundsException(i+" is an invalid key index");
+        }
         Transaction t = getHeadTransaction();
         long offset = offsetInTrytes(i);//descriptorsOffsets.get(i);
         while(offset>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
@@ -68,7 +72,7 @@ public class MetadataFragment extends BundleFragment {
         return METADATA_LANGUAGE_VERSION.length() + index * FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH;
     }
 
-    public static class Builder extends BundleFragment.Builder {
+    public static class Builder extends BundleFragment.Builder<MetadataFragment> {
 
         private List<FieldDescriptor> fields = new ArrayList<>();
 
@@ -79,13 +83,41 @@ public class MetadataFragment extends BundleFragment {
                 throw new IllegalStateException("Cannot build metadata fragment with no fields");
             }
 
-            buildTransactions();
+            prepareTransactionBuilders();
 
             setTags();
+            setBundleBoundaries();
 
             Transaction lastTransaction = buildBundleFragment();
 
             return new MetadataFragment(lastTransaction, keyCount);
+        }
+
+
+        public static Builder fromClass(Class clazz){
+            Map<Integer,FieldDescriptor> fieldDescriptors = new HashMap<>();
+            int fieldCount = 0;
+            Field[] fields = clazz.getFields();
+            for(Field field:fields){
+                if(field.getAnnotation(SerializableField.class)!=null){
+                    SerializableField annotation = field.getAnnotation(SerializableField.class);
+                    FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes(annotation.fieldType()),annotation.tritLength(), annotation.label());
+                    fieldDescriptors.put(annotation.index(),descriptor);
+                    fieldCount++;
+                }
+            }
+            if(fieldCount==0){
+                throw new RuntimeException("class '"+clazz.getName()+"' is not a valid Serializable class. It don't contains serializable field.");
+            }
+            Builder builder = new Builder();
+            for(int i=0;i<fieldCount;i++){
+                FieldDescriptor descriptor = fieldDescriptors.get(i);
+                if(descriptor==null){
+                    throw new RuntimeException("class '"+clazz.getName()+"' is not a valid Serializable class. Field at index "+i+" is missing");
+                }
+                builder.appendField(descriptor);
+            }
+            return builder;
         }
 
         public Builder appendField(FieldDescriptor descriptor){
@@ -93,7 +125,7 @@ public class MetadataFragment extends BundleFragment {
             return this;
         }
 
-        private void buildTransactions() {
+        private void prepareTransactionBuilders() {
             TransactionBuilder transactionBuilder = prepareFreshTransactionBuilder(METADATA_LANGUAGE_VERSION);
             for(FieldDescriptor descriptor:fields){
                 transactionBuilder.signatureFragments += descriptor.toTrytes();

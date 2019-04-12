@@ -1,10 +1,7 @@
 package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.Ict;
-import org.iota.ict.eee.EffectListener;
-import org.iota.ict.eee.Environment;
-import org.iota.ict.ixi.serialization.model.Predicate;
-import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
+import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 import org.iota.ict.utils.properties.Properties;
 import org.junit.jupiter.api.AfterAll;
@@ -38,37 +35,48 @@ public class SerializationModuleIT {
     public static void terminate(){
         serializationModule.terminate();
     }
+
     @Test
     public void testRegisterMetadata() throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicBoolean received = new AtomicBoolean(false);
-        serializationModule.registerDataEffectListener(new Predicate() {
-            @Override
-            public boolean match(StructuredDataFragment dataFragment) {
-                return dataFragment.getHeadTransaction().extraDataDigest().equals(SampleData.classWithOneAsciiField.hash());
-            }
-        }, new EffectListener<StructuredDataFragment>() {
-            @Override
-            public void onReceive(StructuredDataFragment effect) {
-                received.set(true);
-                try {
-                    assertEquals(effect.getAsciiValue(0),"hello");
-                } catch (UnknownMetadataException e) {
-                    fail("Metadata should be known");
+        serializationModule.registerDataListener(
+                dataFragment -> dataFragment.getClassHash().equals(SampleData.classWithOneAsciiField.hash()),
+                dataFragment -> {
+                    received.set(true);
+                    try {
+                        assertEquals(dataFragment.getAsciiValue(0),"hello");
+                    } catch (UnknownMetadataException e) {
+                        fail("Metadata should be known");
+                    }
+                    countDownLatch.countDown();
                 }
-                countDownLatch.countDown();
-            }
-
-            @Override
-            public Environment getEnvironment() {
-                return new Environment("testEnv");
-            }
-        });
+        );
 
         serializationModule.registerMetadata(SampleData.classWithOneAsciiField);
         ict.submit(SampleData.simpleDataFragment.getHeadTransaction());
-        //ict.submitEffect(new Environment("testEnv"),SampleData.simpleDataFragment.getHeadTransaction());
         countDownLatch.await(3, TimeUnit.SECONDS);
         assertTrue(received.get());
     }
+
+    @Test
+    public void testJavaInstanceListener() throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        final AtomicBoolean received = new AtomicBoolean(false);
+        serializationModule.registerDataListener(
+                SampleSerializableClass.class,
+                sample -> {
+                    received.set(true);
+                    assertEquals(17, sample.myInteger);
+
+                    countDownLatch.countDown();
+                }
+        );
+        serializationModule.publish(SampleData.sample);
+        ict.submit(SampleData.simpleDataFragment.getHeadTransaction());
+        countDownLatch.await(3, TimeUnit.SECONDS);
+        assertTrue(received.get());
+    }
+
+
 }

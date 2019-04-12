@@ -7,20 +7,33 @@ import java.util.Objects;
 
 public class FieldType {
 
-    public static final FieldType TRITS = new FieldType(Trytes.fromTrits(new byte[]{1,0,0,0,0,0}));  //A9
-    public static final FieldType TRITS_LIST = new FieldType(Trytes.fromTrits(new byte[]{-1,0,0,0,0,0})); //Z9
-    public static final FieldType INTEGER = new FieldType(Trytes.fromTrits(new byte[]{1,1,0,0,0,0}));  //D9
-    public static final FieldType INTEGER_LIST = new FieldType(Trytes.fromTrits(new byte[]{-1,1,0,0,0,0}));  //B9
-    public static final FieldType BOOLEAN = new FieldType(Trytes.fromTrits(new byte[]{1,0,1,0,0,0}));  //J9
-    public static final FieldType BOOLEAN_LIST = new FieldType(Trytes.fromTrits(new byte[]{-1,0,1,0,0,0}));  //H9
-    public static final FieldType FLOAT = new FieldType(Trytes.fromTrits(new byte[]{1,0,0,1,0,0})); //AA
-    public static final FieldType FLOAT_LIST = new FieldType(Trytes.fromTrits(new byte[]{-1,0,0,1,0,0})); //ZA
-    public static final FieldType HASH = new FieldType(Trytes.fromTrits(new byte[]{1,0,0,0,1,0})); //AC
-    public static final FieldType HASH_LIST = new FieldType(Trytes.fromTrits(new byte[]{-1,0,0,0,1,0})); //ZC
-    public static final FieldType ASCII = new FieldType(Trytes.fromTrits(new byte[]{1,0,0,0,0,1})); //AI
-    public static final FieldType ASCII_LIST = new FieldType(Trytes.fromTrits(new byte[]{-1,0,0,0,0,1})); //ZI
+    public static final String TRITS = "A9";        //1,0,0,0,0,0
+    public static final String TRITS_LIST = "Z9";   //-1,0,0,0,0,0
+    public static final String INTEGER = "D9";      //1,1,0,0,0,0
+    public static final String INTEGER_LIST = "B9"; //-1,1,0,0,0,0
+    public static final String BOOLEAN = "J9";      //1,0,1,0,0,0
+    public static final String BOOLEAN_LIST = "H9"; //-1,0,1,0,0,0
+    public static final String FLOAT = "AA";        //1,0,0,1,0,0
+    public static final String FLOAT_LIST = "ZA";   //-1,0,0,1,0,0
+    public static final String ASCII = "AI";        //1,0,0,0,0,1
+    public static final String ASCII_LIST = "ZI";   //-1,0,0,0,0,1
+    public static final String HASH = "AC";         //1,0,0,0,1,0
+    public static final String HASH_LIST = "ZC";    //-1,0,0,0,1,0
 
-    private String trytes;
+    public static final FieldType TYPE_TRITS = new FieldType(TRITS);  //A9
+    public static final FieldType TYPE_TRITS_LIST = new FieldType(TRITS_LIST); //Z9
+    public static final FieldType TYPE_INTEGER = new FieldType(INTEGER);  //D9
+    public static final FieldType TYPE_INTEGER_LIST = new FieldType(INTEGER_LIST);  //B9
+    public static final FieldType TYPE_BOOLEAN = new FieldType(BOOLEAN);  //J9
+    public static final FieldType TYPE_BOOLEAN_LIST = new FieldType(BOOLEAN_LIST);  //H9
+    public static final FieldType TYPE_FLOAT = new FieldType(FLOAT); //AA
+    public static final FieldType TYPE_FLOAT_LIST = new FieldType(FLOAT_LIST); //ZA
+    public static final FieldType TYPE_HASH = new FieldType(HASH); //AC
+    public static final FieldType TYPE_HASH_LIST = new FieldType(HASH_LIST); //ZC
+    public static final FieldType TYPE_ASCII = new FieldType(ASCII); //AI
+    public static final FieldType TYPE_ASCII_LIST = new FieldType(ASCII_LIST); //ZI
+
+    public final String trytes;
 
     FieldType(String trytes) {
         this.trytes = trytes;
@@ -30,7 +43,7 @@ public class FieldType {
         return new FieldType(trytes);
     }
 
-    public String trytes(){
+    public final String trytes(){
         return trytes;
     }
 
@@ -52,5 +65,25 @@ public class FieldType {
     }
     public boolean isMultipleValue() {
         return Utils.toTrits(trytes.charAt(0))[0]==-1;
+    }
+
+    public boolean isInteger() {
+        return trytes.equals(INTEGER) || trytes.equals(INTEGER_LIST);
+    }
+
+    public boolean isAscii() {
+        return trytes.equals(ASCII) || trytes.equals(ASCII_LIST);
+    }
+
+    public boolean isHash() {
+        return trytes.equals(HASH) || trytes.equals(HASH_LIST);
+    }
+
+    public boolean isBoolean() {
+        return trytes.equals(BOOLEAN) || trytes.equals(BOOLEAN_LIST);
+    }
+
+    public boolean isFloat() {
+        return trytes.equals(FLOAT) || trytes.equals(FLOAT_LIST);
     }
 }

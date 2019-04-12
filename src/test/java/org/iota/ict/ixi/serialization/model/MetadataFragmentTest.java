@@ -108,4 +108,41 @@ public class MetadataFragmentTest {
         assertEquals("Cannot build metadata fragment with no fields", exception.getMessage());
 
     }
+
+    @Test
+    public void metadataFragmentFromClassTest(){
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
+        MetadataFragment metadataFragment = builder.fromClass(SampleSerializableClass.class).build();
+
+        String expectedTag = Trytes.padRight("9D",Transaction.Field.TAG.tryteLength);
+        assertEquals(expectedTag, metadataFragment.getHeadTransaction().tag());
+
+        assertTrue(metadataFragment.hasHeadFlag(metadataFragment.getHeadTransaction()));
+        assertTrue(metadataFragment.hasTailFlag(metadataFragment.getTailTransaction()));
+
+        assertEquals(5, metadataFragment.getKeyCount());
+        FieldDescriptor descriptor0 = metadataFragment.getDescriptor(0);
+        FieldDescriptor descriptor1 = metadataFragment.getDescriptor(1);
+        FieldDescriptor descriptor2 = metadataFragment.getDescriptor(2);
+        FieldDescriptor descriptor3 = metadataFragment.getDescriptor(3);
+        FieldDescriptor descriptor4 = metadataFragment.getDescriptor(4);
+
+        assertEquals(FieldType.TYPE_BOOLEAN,descriptor0.getType());
+        assertEquals(FieldType.TYPE_ASCII,descriptor1.getType());
+        assertEquals(FieldType.TYPE_HASH,descriptor2.getType());
+        assertEquals(FieldType.TYPE_HASH_LIST,descriptor3.getType());
+        assertEquals(FieldType.TYPE_INTEGER,descriptor4.getType());
+
+        assertEquals(1,descriptor0.getTritSize().intValue());
+        assertEquals(99,descriptor1.getTritSize().intValue());
+        assertEquals(243,descriptor2.getTritSize().intValue());
+        assertEquals(243,descriptor3.getTritSize().intValue());
+        assertEquals(27,descriptor4.getTritSize().intValue());
+
+        assertEquals("isTest",descriptor0.getAsciiLabel());
+        assertEquals("myLabel",descriptor1.getAsciiLabel());
+        assertEquals("aReference",descriptor2.getAsciiLabel());
+        assertEquals("aReferenceList",descriptor3.getAsciiLabel());
+        assertEquals("myInteger",descriptor4.getAsciiLabel());
+    }
 }
