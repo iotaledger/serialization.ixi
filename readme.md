@@ -18,7 +18,8 @@ The document is more focused on public API provided by Serialization.ixi
 
 ### Overview
 
-The main api of Serialization.ixi follow the publish/subscribe model where Serialization.ixi is pushing the data to the subscriber as soon as it is available.
+The main api of Serialization.ixi follow the publish/subscribe model where Serialization.ixi is pushing the data to the 
+subscriber as soon as it is available.
 
 Another way to use it is to pull the data from the Tangle, but to use it: you need to know the MetadataFragment and 
 the transaction hash of the StructuredDataFragment. (this is described at the end of this document)
@@ -87,7 +88,8 @@ serializationModule.publish(myData);
 ```
 This code will do all required steps: build a StructuredDataBundleFragment, encapsulate the fragment in a Bundle 
 (containing only the structuredDataFragment) and send the data to the tangle.
-Note that this simple call will "attach" the Bundle to the genesis, so an alternative API can be used to specify the trunk and branch to reference :
+Note that this simple call will "attach" the Bundle to the genesis, so an alternative API can be used to specify the 
+trunk and branch to reference :
 
 ```
 serializationModule.publish(myData, referencedTrunkHash, referencedBranchHash);

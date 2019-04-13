@@ -1,6 +1,7 @@
 ## Serialization.ixi
 
 This document describes in more details the serialization format supported by this ixi.
+(a more operational overview is available [here](readme.md))
 
 ### BundleFragment
 
