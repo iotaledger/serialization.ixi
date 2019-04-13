@@ -12,7 +12,7 @@ To do this, we define 2 new types of `BundleFragment`.
  - The `StructuredDataFragment` to store the data itself.
  - The `MetadataFragment` to describe the content of the StructuredDataFragment.
 
-For more details regarding the serialization format: please read specs.md
+For more details regarding the serialization format: please read [specs.md](specs.md)
 
 The document is more focused on public API provided by Serialization.ixi
 
@@ -27,7 +27,7 @@ the transaction hash of the StructuredDataFragment. (this is described at the en
 
 To publish data on the tangle, a publisher need to :
 1. build a MetadataFragment.
-2. compute the ClassHash for it's MetadataFragment. (see specs.md for details)
+2. compute the ClassHash for it's MetadataFragment. (see [specs.md](specs.md) for details)
 3. (optional) attach the MetadataFragment to the Tangle.
 4. build a StructuredDataFragment.
 5. include the StructuredDataFragment in a Bundle.
@@ -144,7 +144,7 @@ Instead of using annotated java classes to use Serialization.ixi,
 one can manipulate MetadataFragment and StructuredDataFragment directly.
 
 Going this way requires of course a 'in depth' understanding of the underlying architecture 
-(read specs.md for details) 
+(read [specs.md](specs.md) for details) 
 
 ##### MetadataFragment
 

@@ -10,7 +10,7 @@ Just like IOTA bundles, bundle fragments have a head transaction and a tail tran
 We set a specific trit in the tag field to 1 to mark the head transaction of a bundle fragment. 
 We set another trit of the tag field to 1 to mark the tail transaction of a bundle fragment. Those 2 trits must be 0 in all body transactions.
 
-We define the **BundleFragmentHash** as the hash (curl, 27 round) of the concatenation of all signature_of_message_fragment field (ordered from head to tail).
+We define the **BundleFragmentHash** as the hash (curl, 27 round) of the concatenation of all signature_or_message_fragment field (ordered from head to tail).
 
 ### MetadataFragment
 
