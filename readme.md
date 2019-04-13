@@ -74,7 +74,7 @@ Notes :
  3. a set of field types are predefined : Integer, Decimal, Ascii, Boolean, Hash(243 trits), and their *list* variation: 
  IntegerList, DecimalList, AsciiList, BooleanList and HashList
  
-##### Publishing/serializing
+##### Publish/serialize
 
 To publish this data on the Tangle, one can use the following code:
 
@@ -116,7 +116,7 @@ bundleBuilder.append(transactionBuilders);
 Bundle bundle = bundleBuilder.build();
 ```
 
-##### Subscribing/deserializing
+##### Subscribe/deserialize
 
 Again, this IXI provides a very simple API to register a listener for a particular annotated class:
 ```
@@ -215,7 +215,7 @@ There is also a generic getter to read any field as trits (encoded in byte[])
 String ascii = structuredDataFragment.getAsciiValue(0);
 Integer age = structuredDataFragment.getIntegerValue(1);
 boolean isMale = structuredDataFragment.getBooleanValue(2);
-List<byte[]> values = structuredDataFragment.getListValues(2);
+List<byte[]> values = structuredDataFragment.getListValues(3);
 ```
 
 ### Pull data API
