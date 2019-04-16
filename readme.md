@@ -96,7 +96,7 @@ serializationModule.publish(myData, referencedTrunkHash, referencedBranchHash);
 ```
 
 Using `publish(...)` will publish a Bundle containing one single StructuredDataFragment and nothing more. 
-It can be handy in some cases, but in general, a StructuredDataFragment can be included in an arbitrary Bundle
+It can be handy in some cases, but in general: a StructuredDataFragment can be included in an arbitrary Bundle
 with other transactions.
 
 Crafting a complete arbitrary Bundle is not in the scope of this ixi, but it provide a simple API to craft a 

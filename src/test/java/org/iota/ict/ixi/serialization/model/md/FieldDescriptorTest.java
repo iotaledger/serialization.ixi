@@ -49,6 +49,6 @@ public class FieldDescriptorTest {
         FieldDescriptor fieldDescriptorDeserialized = FieldDescriptor.fromTrytes(trytes);
         assertEquals(fieldDescriptor.getType(), fieldDescriptorDeserialized.getType());
         assertEquals(fieldDescriptor.getTritSize(), fieldDescriptorDeserialized.getTritSize());
-        assertEquals("ABCDEFGHIKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUV", fieldDescriptorDeserialized.getLabel());
+        assertEquals("ABCDEFGHIKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVW", fieldDescriptorDeserialized.getLabel());
     }
 }

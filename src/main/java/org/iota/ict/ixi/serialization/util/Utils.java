@@ -5,6 +5,7 @@ import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import static org.iota.ict.utils.Trytes.TRITS_BY_TRYTE;
@@ -94,8 +95,36 @@ public class Utils {
         return value==null? null : value[0] == 1;
     }
 
-    public static Float floatFromTrits(byte[] value) {
-        //TODO
-        return null;
+    public static BigDecimal decimalFromTrits(byte[] value) {
+        int expLength = value.length/3;
+        int mantissaLength = value.length - expLength;
+        byte[] mantissaTrits = new byte[mantissaLength];
+        System.arraycopy(value,0, mantissaTrits,0,mantissaLength);
+        BigInteger mantissa = integerFromTrits(mantissaTrits);
+        byte[] exponent_trits = new byte[expLength];
+        System.arraycopy(value,mantissaLength, exponent_trits,0,expLength);
+        BigInteger exponent = integerFromTrits(exponent_trits);
+        return BigDecimal.valueOf(mantissa.longValue(),exponent.intValue());
+    }
+
+    public static byte[] decimalToTrits(Object value, int tritsLength) {
+        byte[] ret = new byte[tritsLength];
+        BigDecimal decimal = null;
+        if(value instanceof Float){
+            decimal = new BigDecimal(value.toString());
+        }else if(value instanceof Double){
+            decimal = new BigDecimal(value.toString());
+        }else if(value instanceof BigDecimal){
+            decimal = (BigDecimal)value;
+        }
+        if(decimal!=null){
+            int expLength = tritsLength/3;
+            int mantissaLength = tritsLength - expLength;
+            byte[] expTrits = new byte[expLength];
+            byte[] mantissaTrits = new byte[mantissaLength];
+            System.arraycopy(Trytes.toTrits(Trytes.fromNumber(BigInteger.valueOf(decimal.scale()),expLength)),0,ret,mantissaLength,expLength);
+            System.arraycopy(Trytes.toTrits(Trytes.fromNumber(decimal.unscaledValue(),mantissaLength)),0,ret,0,mantissaLength);
+        }
+        return ret;
     }
 }

@@ -95,6 +95,10 @@ public abstract class BundleFragment {
             return tailToHead.getFirst();
         }
 
+        List<TransactionBuilder> getTailToHead() {
+            return tailToHead;
+        }
+
         public Transaction buildBundleFragment() {
             return buildTrunkLinkedChainAndReturnHead();
         }

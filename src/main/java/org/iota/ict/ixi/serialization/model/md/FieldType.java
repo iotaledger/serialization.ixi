@@ -1,7 +1,6 @@
 package org.iota.ict.ixi.serialization.model.md;
 
 import org.iota.ict.ixi.serialization.util.Utils;
-import org.iota.ict.utils.Trytes;
 
 import java.util.Objects;
 
@@ -13,8 +12,8 @@ public class FieldType {
     public static final String INTEGER_LIST = "B9"; //-1,1,0,0,0,0
     public static final String BOOLEAN = "J9";      //1,0,1,0,0,0
     public static final String BOOLEAN_LIST = "H9"; //-1,0,1,0,0,0
-    public static final String FLOAT = "AA";        //1,0,0,1,0,0
-    public static final String FLOAT_LIST = "ZA";   //-1,0,0,1,0,0
+    public static final String DECIMAL = "AA";        //1,0,0,1,0,0
+    public static final String DECIMAL_LIST = "ZA";   //-1,0,0,1,0,0
     public static final String ASCII = "AI";        //1,0,0,0,0,1
     public static final String ASCII_LIST = "ZI";   //-1,0,0,0,0,1
     public static final String HASH = "AC";         //1,0,0,0,1,0
@@ -26,8 +25,8 @@ public class FieldType {
     public static final FieldType TYPE_INTEGER_LIST = new FieldType(INTEGER_LIST);  //B9
     public static final FieldType TYPE_BOOLEAN = new FieldType(BOOLEAN);  //J9
     public static final FieldType TYPE_BOOLEAN_LIST = new FieldType(BOOLEAN_LIST);  //H9
-    public static final FieldType TYPE_FLOAT = new FieldType(FLOAT); //AA
-    public static final FieldType TYPE_FLOAT_LIST = new FieldType(FLOAT_LIST); //ZA
+    public static final FieldType TYPE_DECIMAL = new FieldType(DECIMAL); //AA
+    public static final FieldType TYPE_DECIMAL_LIST = new FieldType(DECIMAL_LIST); //ZA
     public static final FieldType TYPE_HASH = new FieldType(HASH); //AC
     public static final FieldType TYPE_HASH_LIST = new FieldType(HASH_LIST); //ZC
     public static final FieldType TYPE_ASCII = new FieldType(ASCII); //AI
@@ -83,7 +82,7 @@ public class FieldType {
         return trytes.equals(BOOLEAN) || trytes.equals(BOOLEAN_LIST);
     }
 
-    public boolean isFloat() {
-        return trytes.equals(FLOAT) || trytes.equals(FLOAT_LIST);
+    public boolean isDecimal() {
+        return trytes.equals(DECIMAL) || trytes.equals(DECIMAL_LIST);
     }
 }

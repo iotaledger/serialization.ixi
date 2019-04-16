@@ -42,7 +42,11 @@ A *field descriptor* is composed of 3 components of fixed size:
     - the size of the field in trits (when cardinality is "single value")
     - the size of one element of the list (when cardinality is "multiple values")
     Note that a Boolean field should have a size of 1 and a TransactionHash field should have a size of 243.
-- The <u>label</u> component (141 trits) is a human readable description  (ascii encoded) of the field.
+- The <u>label</u> component (144 trits) is a human readable description  (up 24 chars, ascii encoded) of the field.
+
+Decimal type: a decimal number is composed of two part, the mantissa and the exponent. 
+If the length of the decimal field is N, the exponent is encoded in the last N/3 trits, 
+the other (N-N/3) first trits encode the mantissa.
 
 ![descriptor](docs/descriptor.png)
 

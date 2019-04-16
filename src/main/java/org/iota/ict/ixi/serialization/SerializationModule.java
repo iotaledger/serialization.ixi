@@ -5,6 +5,7 @@ import org.iota.ict.eee.dispatch.EffectDispatcher;
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.serialization.model.MetadataFragment;
+import org.iota.ict.ixi.serialization.model.PreparedDataFragment;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
@@ -193,6 +194,11 @@ public class SerializationModule extends IxiModule {
         }
     }
 
+    public PreparedDataFragment prepare(Object data) {
+        return  new StructuredDataFragment.Builder()
+                    .fromInstance(data)
+                    .prepare();
+    }
 
 
     /**

@@ -10,6 +10,7 @@ import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -228,8 +229,26 @@ public class StructuredDataFragment extends BundleFragment {
         if(descriptor.isBoolean()){
             return Utils.booleanFromTrits(value);
         }
-        if(descriptor.isFloat()){
-            return Utils.floatFromTrits(value);
+        if(descriptor.isDecimal()){
+            BigDecimal decimal = Utils.decimalFromTrits(value);
+            if(field.getType().equals(Float.class)){
+                return decimal.floatValue();
+            }
+            if(field.getType().equals(Double.class)){
+                return decimal.doubleValue();
+            }
+            if(field.getType().equals(BigDecimal.class)){
+                return decimal;
+            }
+            if(field.getType().getName().equals("float")){
+                if(decimal==null) return 0;
+                return decimal.floatValue();
+            }
+            if(field.getType().getName().equals("double")){
+                if(decimal==null) return 0;
+                return decimal.doubleValue();
+            }
+
         }
         return null;
     }
@@ -356,9 +375,8 @@ public class StructuredDataFragment extends BundleFragment {
                     return Trytes.toTrits(Trytes.fromNumber(BigInteger.valueOf((Long) value), descriptor.getTryteSize()));
                 }
             }
-            if(descriptor.isFloat()){
-                //TODO
-                return new byte[descriptor.getTritSize().intValue()];
+            if(descriptor.isDecimal()){
+                return Utils.decimalToTrits(value, descriptor.getTritSize().intValue());
             }
             return new byte[descriptor.getTritSize().intValue()];
         }
@@ -372,6 +390,17 @@ public class StructuredDataFragment extends BundleFragment {
             return ret;
         }
 
+        public PreparedDataFragment prepare(){
+            if (metadata == null) {
+                throw new IllegalStateException("MetadataFragment cannot be null");
+            }
+
+            prepareTransactionBuilders();
+
+            setTags();
+            setMetadataHash();
+            return new PreparedDataFragment(this);
+        }
         public StructuredDataFragment build() {
             if (metadata == null) {
                 throw new IllegalStateException("MetadataFragment cannot be null");
@@ -380,9 +409,10 @@ public class StructuredDataFragment extends BundleFragment {
             prepareTransactionBuilders();
 
             setTags();
+            setMetadataHash();
+
             setBundleBoundaries();
 
-            setMetadataHash();
 
             Transaction headTransaction = buildBundleFragment();
 

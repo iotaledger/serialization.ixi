@@ -10,7 +10,7 @@ public class FieldDescriptor {
 
     public static final int FIELD_TYPE_TRIT_LENGTH = 6;
     public static final int FIELD_SIZE_TRIT_LENGTH = 12;
-    public static final int FIELD_LABEL_TRIT_LENGTH = 141;
+    public static final int FIELD_LABEL_TRIT_LENGTH = 144;
 
     public static final int FIELD_TYPE_TRYTE_LENGTH = FIELD_TYPE_TRIT_LENGTH / 3;
     public static final int FIELD_SIZE_TRYTE_LENGTH = FIELD_SIZE_TRIT_LENGTH / 3;
@@ -137,7 +137,7 @@ public class FieldDescriptor {
         return type.isBoolean();
     }
 
-    public boolean isFloat() {
-        return type.isFloat();
+    public boolean isDecimal() {
+        return type.isDecimal();
     }
 }
