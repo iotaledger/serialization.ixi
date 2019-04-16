@@ -1,6 +1,7 @@
 package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.Ict;
+import org.iota.ict.ixi.serialization.model.AllTypesSampleData;
 import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 import org.iota.ict.utils.properties.Properties;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -73,9 +75,54 @@ public class SerializationModuleIT {
                 }
         );
         serializationModule.publish(SampleData.sample);
-        ict.submit(SampleData.simpleDataFragment.getHeadTransaction());
-        countDownLatch.await(3, TimeUnit.SECONDS);
+        countDownLatch.await(1, TimeUnit.SECONDS);
         assertTrue(received.get());
+    }
+
+
+    @Test
+    public void serializeAllTypeClassInstance() throws UnknownMetadataException, InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        final AtomicBoolean received = new AtomicBoolean(false);
+        AllTypesSampleData sample = SampleData.allTypesSample;
+
+        serializationModule.registerDataListener(AllTypesSampleData.class, new DataFragmentListener<AllTypesSampleData>() {
+            @Override
+            public void onData(AllTypesSampleData sampleData) {
+                assertEquals(true, sampleData.isTest);
+                assertEquals("aLabel", sampleData.myLabel);
+                assertEquals(sample.aReferenceHash, sampleData.aReferenceHash);
+                List<String> values = sampleData.listOfReferences;
+                for(int i=0;i<50;i++){
+                    assertEquals(sample.listOfReferences.get(i),values.get(i));
+                }
+                assertEquals(17, sampleData.myInteger);
+                assertEquals(55, sampleData.myIntegerObject.intValue());
+                assertEquals(Long.MAX_VALUE, sampleData.myLong);
+                assertEquals(56, sampleData.myLongObject.intValue());
+                assertEquals(Long.MAX_VALUE, sampleData.myBigInteger.longValue());
+                assertEquals(333.12f, sampleData.myFloat);
+                assertEquals(1.23456f, sampleData.myFloatObject.floatValue());
+                assertEquals(222.12, sampleData.myDouble);
+                assertEquals(1.234567, sampleData.myDoubleObject.doubleValue());
+                assertEquals(sample.myBigDecimal, sampleData.myBigDecimal);
+                assertEquals(sample.isTestList, sampleData.isTestList);
+                assertEquals(sample.myLabelList, sampleData.myLabelList);
+                assertEquals(sample.myIntegerList, sampleData.myIntegerList);
+                assertEquals(sample.myLongObjectList, sampleData.myLongObjectList);
+                assertEquals(sample.myBigIntegerList, sampleData.myBigIntegerList);
+                assertEquals(sample.myFloatObjectList, sampleData.myFloatObjectList);
+                assertEquals(sample.myDoubleObjectList, sampleData.myDoubleObjectList);
+                assertEquals(sample.myBigDecimalList, sampleData.myBigDecimalList);
+                received.set(true);
+                countDownLatch.countDown();
+            }
+        });
+        serializationModule.publish(sample);
+        countDownLatch.await(1, TimeUnit.SECONDS);
+        assertTrue(received.get());
+
+
     }
 
 

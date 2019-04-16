@@ -1,11 +1,9 @@
 package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.eee.Environment;
-import org.iota.ict.eee.dispatch.EffectDispatcher;
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.serialization.model.MetadataFragment;
-import org.iota.ict.ixi.serialization.model.PreparedDataFragment;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
@@ -78,7 +76,7 @@ public class SerializationModule extends IxiModule {
      * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
      * @throws UnknownMetadataException when referenced metadata is unknown or invalid
      */
-    public StructuredDataFragment loadStructuredData(String transactionHash) throws UnknownMetadataException {
+    public StructuredDataFragment loadFragmentData(String transactionHash) throws UnknownMetadataException {
         if (!Utils.isValidHash(transactionHash)) {
             throw new IllegalArgumentException("'" + transactionHash + "' is not a valid transaction hash");
         }
@@ -95,6 +93,27 @@ public class SerializationModule extends IxiModule {
         }
         StructuredDataFragment structuredDataFragment = new StructuredDataFragment(tx, metadata);
         return structuredDataFragment;
+    }
+
+    public <T> T loadFragmentData(String transactionHash, Class<T> clazz) {
+        if (!Utils.isValidHash(transactionHash)) {
+            throw new IllegalArgumentException("'" + transactionHash + "' is not a valid transaction hash");
+        }
+        Transaction tx = ixi.findTransactionByHash(transactionHash);
+        if(tx==null){
+            return null;
+        }
+        if(!StructuredDataFragment.isHead(tx)){
+            return null;
+        }
+        MetadataFragment metadata = MetadataFragment.Builder.fromClass(clazz).build();
+        registerMetadata(metadata);
+        StructuredDataFragment structuredDataFragment = new StructuredDataFragment(tx, metadata);
+        try {
+            return structuredDataFragment.deserializeToClass(clazz);
+        } catch (UnknownMetadataException e) {
+            throw new RuntimeException("Should not append", e);
+        }
     }
 
     /**
@@ -194,10 +213,28 @@ public class SerializationModule extends IxiModule {
         }
     }
 
-    public PreparedDataFragment prepare(Object data) {
+    /**
+     * Build a StructuredDataFragment.Prepared for data.
+     * The StructuredDataFragment.Prepared can be used later to insert the dataFragment in Bundle.
+     * @param data
+     * @return a preparedDataFragment.
+     */
+    public StructuredDataFragment.Prepared prepare(Object data) {
         return  new StructuredDataFragment.Builder()
                     .fromInstance(data)
                     .prepare();
+    }
+
+    /**
+     * Build a MetadataFragment.Prepared for data.
+     * The MetadataFragment.Prepared can be used later to insert the metadataFragment in a Bundle.
+     * @param clazz : properly annotated class
+     * @return a prepared MetadataFragment.
+     */
+    public MetadataFragment.Prepared prepareMetadata(Class clazz) {
+        return  new MetadataFragment.Builder()
+                .fromClass(clazz)
+                .prepare();
     }
 
 

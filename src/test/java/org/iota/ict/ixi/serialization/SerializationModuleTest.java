@@ -2,8 +2,8 @@ package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.TestUtils;
+import org.iota.ict.ixi.serialization.model.AllTypesSampleData;
 import org.iota.ict.ixi.serialization.model.MetadataFragment;
-import org.iota.ict.ixi.serialization.model.PreparedDataFragment;
 import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
@@ -15,6 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -58,35 +61,35 @@ public class SerializationModuleTest {
     public void loadStructuredDataFromInvalidHash(){
 
         Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                serializationModule.loadStructuredData(null));
+                serializationModule.loadFragmentData(null));
         assertEquals("'null' is not a valid transaction hash", exception.getMessage());
 
         exception = assertThrows(IllegalArgumentException.class, () ->
-                serializationModule.loadStructuredData(""));
+                serializationModule.loadFragmentData(""));
         assertEquals("'' is not a valid transaction hash", exception.getMessage());
 
         String shortHash = TestUtils.random(80);
         exception = assertThrows(IllegalArgumentException.class, () ->
-                serializationModule.loadStructuredData(shortHash));
+                serializationModule.loadFragmentData(shortHash));
         assertEquals("'"+shortHash+"' is not a valid transaction hash", exception.getMessage());
 
         String longHash = TestUtils.random(82);
         exception = assertThrows(IllegalArgumentException.class, () ->
-                serializationModule.loadStructuredData(longHash));
+                serializationModule.loadFragmentData(longHash));
         assertEquals("'"+longHash+"' is not a valid transaction hash", exception.getMessage());
     }
 
     @Test
     public void loadStructuredDataFromUnknownHash(){
         try{
-            assertNull(serializationModule.loadStructuredData(TestUtils.randomHash())," Expecting a null response when transaction hash is unknown");
+            assertNull(serializationModule.loadFragmentData(TestUtils.randomHash())," Expecting a null response when transaction hash is unknown");
         }catch (UnknownMetadataException e){
             fail("Was expecting a null when transaction hash is unknown");
         }
     }
 
     @Test
-    public void checkBuilderConnotBeNull(){
+    public void checkBuilderCannotBeNull(){
         Exception exception = assertThrows(IllegalArgumentException.class, () ->
                 serializationModule.buildMetadataFragment(null));
         assertEquals("builder cannot be null", exception.getMessage());
@@ -98,7 +101,7 @@ public class SerializationModuleTest {
     @Test
     public void prepareDataFragment(){
         SampleSerializableClass myData = SampleData.sample;
-        PreparedDataFragment preparedData = serializationModule.prepare(myData);
+        StructuredDataFragment.Prepared preparedData = serializationModule.prepare(myData);
         assertEquals(2,preparedData.fromTailToHead().size());
 
         BundleBuilder bundleBuilder = new BundleBuilder();
@@ -124,7 +127,7 @@ public class SerializationModuleTest {
         SampleSerializableClass myData = new SampleSerializableClass();
         myData.isTest = true;
         myData.myLabel = "hello world";
-        PreparedDataFragment preparedData = serializationModule.prepare(myData);
+        StructuredDataFragment.Prepared preparedData = serializationModule.prepare(myData);
         assertEquals(1,preparedData.fromTailToHead().size());
 
         BundleBuilder bundleBuilder = new BundleBuilder();
@@ -142,4 +145,6 @@ public class SerializationModuleTest {
         assertEquals("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",bundle.getTail().address());
         assertEquals( MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build().hash(), bundle.getHead().getTrunk().extraDataDigest());
     }
+
+
 }

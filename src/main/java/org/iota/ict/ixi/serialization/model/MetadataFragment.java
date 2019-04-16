@@ -72,6 +72,19 @@ public class MetadataFragment extends BundleFragment {
         return METADATA_LANGUAGE_VERSION.length() + index * FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH;
     }
 
+    public static class Prepared {
+
+        private Builder builder;
+
+        Prepared(Builder builder){
+            this.builder = builder;
+        }
+
+        public List<TransactionBuilder> fromTailToHead(){
+            return builder.getTailToHead();
+        }
+    }
+
     public static class Builder extends BundleFragment.Builder<MetadataFragment> {
 
         private List<FieldDescriptor> fields = new ArrayList<>();
@@ -84,8 +97,8 @@ public class MetadataFragment extends BundleFragment {
             }
 
             prepareTransactionBuilders();
-
             setTags();
+
             setBundleBoundaries();
 
             Transaction lastTransaction = buildBundleFragment();
@@ -93,6 +106,16 @@ public class MetadataFragment extends BundleFragment {
             return new MetadataFragment(lastTransaction, keyCount);
         }
 
+
+        public MetadataFragment.Prepared prepare() {
+            if(fields.size()==0){
+                throw new IllegalStateException("Cannot build metadata fragment with no fields");
+            }
+
+            prepareTransactionBuilders();
+            setTags();
+            return new Prepared(this);
+        }
 
         public static Builder fromClass(Class clazz){
             Map<Integer,FieldDescriptor> fieldDescriptors = new HashMap<>();
@@ -155,6 +178,7 @@ public class MetadataFragment extends BundleFragment {
             transactionBuilder.signatureFragments = /*METADATA_LANGUAGE_VERSION +*/ remaining;
             return  transactionBuilder;
         }
+
     }
 
 }

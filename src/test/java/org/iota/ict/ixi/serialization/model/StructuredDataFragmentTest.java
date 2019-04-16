@@ -8,14 +8,14 @@ import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.utils.Trytes;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.iota.ict.ixi.serialization.util.Utils.asciiFromTrits;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class StructuredDataFragmentTest {
 
@@ -140,5 +140,68 @@ public class StructuredDataFragmentTest {
             assertEquals(sample.listOfReferences.get(i),values.get(i));
         }
         assertEquals(17, dataFragment.getIntegerValue(4).intValue());
+    }
+
+    @Test
+    public void serializeAllTypeClassInstance() throws UnknownMetadataException {
+        AllTypesSampleData sample = SampleData.allTypesSample;
+
+        StructuredDataFragment dataFragment = new StructuredDataFragment.Builder().fromInstance(sample).build();
+
+        assertEquals(true, dataFragment.getBooleanValue(0));
+        assertEquals("aLabel", dataFragment.getAsciiValue(1));
+        assertEquals(sample.aReferenceHash, dataFragment.getTrytesValue(2));
+        List<String> values = dataFragment.getTryteList(3);
+        for(int i=0;i<50;i++){
+            assertEquals(sample.listOfReferences.get(i),values.get(i));
+        }
+        assertEquals(17, dataFragment.getIntegerValue(4).intValue());
+        assertEquals(55, dataFragment.getIntegerValue(5).intValue());
+        assertEquals(Long.MAX_VALUE, dataFragment.getIntegerValue(6).longValue());
+        assertEquals(56, dataFragment.getIntegerValue(7).intValue());
+        assertEquals(Long.MAX_VALUE, dataFragment.getIntegerValue(8).longValue());
+        assertEquals(333.12f, dataFragment.getDecimalValue(9).floatValue());
+        assertEquals(1.23456f, dataFragment.getDecimalValue(10).floatValue());
+        assertEquals(222.12, dataFragment.getDecimalValue(11).doubleValue());
+        assertEquals(1.234567, dataFragment.getDecimalValue(12).doubleValue());
+        assertEquals(sample.myBigDecimal, dataFragment.getDecimalValue(13));
+        assertEquals(sample.isTestList, dataFragment.getBooleanList(14));
+        assertEquals(sample.myLabelList, dataFragment.getAsciiList(15));
+        assertEquals(sample.myIntegerList, dataFragment.getIntegerList(16));
+        assertEquals(sample.myLongObjectList, dataFragment.getLongList(17));
+        assertEquals(sample.myBigIntegerList, dataFragment.getBigIntegerList(18));
+        assertEquals(sample.myFloatObjectList, dataFragment.getFloatList(19));
+        assertEquals(sample.myDoubleObjectList, dataFragment.getDoubleList(20));
+        assertEquals(sample.myBigDecimalList, dataFragment.getBigDecimalList(21));
+    }
+
+    @Test
+    public void serializeAllTypeClassInstanceAllFieldNull() throws UnknownMetadataException {
+        AllTypesSampleData sample = new AllTypesSampleData();
+
+        StructuredDataFragment dataFragment = new StructuredDataFragment.Builder().fromInstance(sample).build();
+
+        assertEquals(false, dataFragment.getBooleanValue(0));
+        assertEquals("",dataFragment.getAsciiValue(1));
+        assertEquals("999999999999999999999999999999999999999999999999999999999999999999999999999999999",dataFragment.getTrytesValue(2));
+        assertEquals(Collections.EMPTY_LIST,dataFragment.getTryteList(3));
+        assertEquals(0, dataFragment.getIntegerValue(4).intValue());
+        assertEquals(0, dataFragment.getIntegerValue(5).intValue());
+        assertEquals(0, dataFragment.getIntegerValue(6).longValue());
+        assertEquals(0, dataFragment.getIntegerValue(7).intValue());
+        assertEquals(BigInteger.ZERO, dataFragment.getIntegerValue(8));
+        assertEquals(0, dataFragment.getDecimalValue(9).floatValue());
+        assertEquals(0, dataFragment.getDecimalValue(10).floatValue());
+        assertEquals(0, dataFragment.getDecimalValue(11).doubleValue());
+        assertEquals(0, dataFragment.getDecimalValue(12).doubleValue());
+        assertEquals(BigDecimal.ZERO, dataFragment.getDecimalValue(13));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getBooleanList(14));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getAsciiList(15));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getIntegerList(16));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getLongList(17));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getBigIntegerList(18));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getFloatList(19));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getDoubleList(20));
+        assertEquals(Collections.EMPTY_LIST, dataFragment.getBigDecimalList(21));
     }
 }

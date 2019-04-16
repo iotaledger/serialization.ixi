@@ -10,6 +10,7 @@ import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -19,9 +20,7 @@ public class StructuredDataFragment extends BundleFragment {
     private static final BigInteger MESSAGE_SIZE = BigInteger.valueOf(Transaction.Field.SIGNATURE_FRAGMENTS.tritLength);
 
     private static final int LIST_SIZE_FIELD_TRIT_SIZE = 12;
-
     private final MetadataFragment metadataFragment;
-
     private List<Long> offsets;
     private long totalSize;
 
@@ -105,6 +104,11 @@ public class StructuredDataFragment extends BundleFragment {
         return value == null ? null : Utils.integerFromTrits(value);
     }
 
+    public BigDecimal getDecimalValue(int i) throws UnknownMetadataException {
+        byte[] value = getValue(i);
+        return value == null ? null : Utils.decimalFromTrits(value);
+    }
+
     public String getAsciiValue(int i) throws UnknownMetadataException {
         byte[] value = getValue(i);
         return value == null ? "" : Utils.asciiFromTrits(value);
@@ -152,7 +156,8 @@ public class StructuredDataFragment extends BundleFragment {
 
 
     public <T> T deserializeToClass(Class<T> clazz) throws UnknownMetadataException {
-        String classHash = MetadataFragment.Builder.fromClass(clazz).build().hash();
+        MetadataFragment metadataFragment = MetadataFragment.Builder.fromClass(clazz).build();
+        String classHash = metadataFragment.hash();
         if (!classHash.equals(getClassHash())) {
             return null;
         }
@@ -182,7 +187,7 @@ public class StructuredDataFragment extends BundleFragment {
                 Field javaField = javaFields.get(i);
                 if(descriptor.isSingleValue()){
                     byte[] value = getValue(i);
-                    javaField.set(data, extractJavaValue(value,javaField,descriptor));
+                    javaField.set(data, extractJavaValue(value,javaField.getType(),descriptor));
                 }else{
                     List<byte[]> values = getListValue(i);
                     javaField.set(data, extractJavaList(values,javaField,descriptor));
@@ -198,23 +203,23 @@ public class StructuredDataFragment extends BundleFragment {
         return null;
     }
 
-    private Object extractJavaValue(byte[] value, Field field, FieldDescriptor descriptor){
+    private Object extractJavaValue(byte[] value, Class fieldType, FieldDescriptor descriptor){
         if(descriptor.isInteger()){
             BigInteger integer = Utils.integerFromTrits(value);
-            if(field.getType().equals(Integer.class)){
+            if(fieldType.equals(Integer.class)){
                 return integer.intValue();
             }
-            if(field.getType().equals(Long.class)){
+            if(fieldType.equals(Long.class)){
                 return integer.longValue();
             }
-            if(field.getType().equals(BigInteger.class)){
+            if(fieldType.equals(BigInteger.class)){
                 return integer;
             }
-            if(field.getType().getName().equals("int")){
+            if(fieldType.equals(Integer.TYPE)){
                 if(integer==null) return 0;
                 return integer.intValue();
             }
-            if(field.getType().getName().equals("long")){
+            if(fieldType.equals(Long.TYPE)){
                 if(integer==null) return 0;
                 return integer.longValue();
             }
@@ -231,20 +236,20 @@ public class StructuredDataFragment extends BundleFragment {
         }
         if(descriptor.isDecimal()){
             BigDecimal decimal = Utils.decimalFromTrits(value);
-            if(field.getType().equals(Float.class)){
+            if(fieldType.equals(Float.class)){
                 return decimal.floatValue();
             }
-            if(field.getType().equals(Double.class)){
+            if(fieldType.equals(Double.class)){
                 return decimal.doubleValue();
             }
-            if(field.getType().equals(BigDecimal.class)){
+            if(fieldType.equals(BigDecimal.class)){
                 return decimal;
             }
-            if(field.getType().getName().equals("float")){
+            if(fieldType.equals(Float.TYPE)){
                 if(decimal==null) return 0;
                 return decimal.floatValue();
             }
-            if(field.getType().getName().equals("double")){
+            if(fieldType.equals(Double.TYPE)){
                 if(decimal==null) return 0;
                 return decimal.doubleValue();
             }
@@ -254,11 +259,100 @@ public class StructuredDataFragment extends BundleFragment {
     }
     private List extractJavaList(List<byte[]> values, Field field, FieldDescriptor descriptor){
         List list = new ArrayList(values.size());
+        Class fieldType = findFieldTypeForList(field);
         for(byte[] value:values){
-            list.add(extractJavaValue(value, field, descriptor));
+            list.add(extractJavaValue(value, fieldType, descriptor));
         }
         return list;
     }
+
+    private static Class findFieldTypeForList(Field field){
+        if(field.getGenericType() instanceof ParameterizedType) {
+            return (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+        }
+        return null;
+    }
+    public List<Boolean> getBooleanList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<Boolean> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:values.get(j)[0]==1);
+        }
+        return ret;
+    }
+    public List<String> getAsciiList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<String> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:Trytes.toAscii(Trytes.fromTrits(values.get(j))));
+        }
+        return ret;
+    }
+    public List<Integer> getIntegerList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<Integer> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:Utils.integerFromTrits(values.get(j)).intValue());
+        }
+        return ret;
+    }
+    public List<Long> getLongList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<Long> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:Utils.integerFromTrits(values.get(j)).longValue());
+        }
+        return ret;
+    }
+    public List<BigInteger> getBigIntegerList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<BigInteger> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:Utils.integerFromTrits(values.get(j)));
+        }
+        return ret;
+    }
+    public List<Float> getFloatList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<Float> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:Utils.decimalFromTrits(values.get(j)).floatValue());
+        }
+        return ret;
+    }
+    public List<Double> getDoubleList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<Double> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:Utils.decimalFromTrits(values.get(j)).doubleValue());
+        }
+        return ret;
+    }
+    public List<BigDecimal> getBigDecimalList(int i) throws UnknownMetadataException {
+        List<byte[]> values = getListValue(i);
+        List<BigDecimal> ret = new ArrayList<>(values.size());
+        for(int j=0;j<values.size();j++){
+            ret.add(j,values.get(j)==null?null:Utils.decimalFromTrits(values.get(j)));
+        }
+        return ret;
+    }
+
+    public static class Prepared {
+        private StructuredDataFragment.Builder builder;
+
+        Prepared(StructuredDataFragment.Builder builder) {
+            this.builder = builder;
+        }
+
+        public List<TransactionBuilder> fromTailToHead(){
+            return builder.getTailToHead();
+        }
+
+        public MetadataFragment getMetadataFragment(){
+            return builder.metadata;
+        }
+    }
+
 
     public static class Builder extends BundleFragment.Builder<StructuredDataFragment> {
 
@@ -390,7 +484,7 @@ public class StructuredDataFragment extends BundleFragment {
             return ret;
         }
 
-        public PreparedDataFragment prepare(){
+        public StructuredDataFragment.Prepared prepare(){
             if (metadata == null) {
                 throw new IllegalStateException("MetadataFragment cannot be null");
             }
@@ -399,8 +493,9 @@ public class StructuredDataFragment extends BundleFragment {
 
             setTags();
             setMetadataHash();
-            return new PreparedDataFragment(this);
+            return new Prepared(this);
         }
+
         public StructuredDataFragment build() {
             if (metadata == null) {
                 throw new IllegalStateException("MetadataFragment cannot be null");
