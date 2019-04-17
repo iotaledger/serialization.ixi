@@ -28,6 +28,7 @@ public class SerializationModuleIT {
 
     @BeforeAll
     public static void startIct() throws Exception {
+        System.setProperty("log4j.configurationFile","log4j2.xml");
         Properties properties = new Properties();
         ict = new Ict(properties.toFinal());
         ict.getModuleHolder().loadVirtualModule(SerializationModule.class, "Serialization.ixi");
