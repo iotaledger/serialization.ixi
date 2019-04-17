@@ -5,8 +5,15 @@ import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.IxiModuleHolder;
 import org.iota.ict.ixi.IxiModuleInfo;
 import org.iota.ict.ixi.serialization.model.AllTypesSampleData;
+import org.iota.ict.ixi.serialization.model.MetadataFragment;
 import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
+import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
+import org.iota.ict.model.bundle.Bundle;
+import org.iota.ict.model.bundle.BundleBuilder;
+import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.model.transaction.TransactionBuilder;
+import org.iota.ict.utils.Trytes;
 import org.iota.ict.utils.properties.Properties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -17,9 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class SerializationModuleIT {
 
@@ -128,6 +133,64 @@ public class SerializationModuleIT {
 
     }
 
+
+    @Test
+    public void loadFragmentDataThrowExceptionTest() throws UnknownMetadataException {
+        serializationModule.forgetAllMetadata();
+        String dataHeadHash = createAndSubmitBundle();
+        assertThrows(UnknownMetadataException.class, () ->
+                serializationModule.loadFragmentData(dataHeadHash));
+    }
+
+    @Test
+    public void loadFragmentDataTest() throws UnknownMetadataException {
+        String dataHeadHash = createAndSubmitBundle();
+        serializationModule.registerMetadata(MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build());
+        StructuredDataFragment dataFragment = serializationModule.loadFragmentData(dataHeadHash);
+        assertNotNull(dataFragment);
+        assertTrue(serializationModule.getTritsForKeyAtIndex(dataFragment,0)[0]==1);
+        byte[] expected = new byte[99];
+        byte[] hello_word = Trytes.toTrits(Trytes.fromAscii("hello world"));
+        System.arraycopy(hello_word,0,expected,0,hello_word.length);
+        assertArrayEquals(expected,serializationModule.getTritsForKeyAtIndex(dataFragment,1));
+    }
+
+    private String createAndSubmitBundle() {
+        Bundle bundle = createBundle();
+        List<Transaction> txs = bundle.getTransactions();
+        Transaction fragmentHead = txs.get(1);
+        String dataHeadHash = fragmentHead.hash;
+        for(int i = txs.size()-1; i>=0 ;i--){
+            ict.submit(txs.get(i));
+        }
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return dataHeadHash;
+    }
+
+
+    private Bundle createBundle() {
+        SampleSerializableClass myData = new SampleSerializableClass();
+        myData.isTest = true;
+        myData.myLabel = "hello world";
+        StructuredDataFragment.Prepared preparedData = serializationModule.prepare(myData);
+        assertEquals(1,preparedData.fromTailToHead().size());
+
+        BundleBuilder bundleBuilder = new BundleBuilder();
+
+        TransactionBuilder tx0 = new TransactionBuilder();
+        tx0.address="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        bundleBuilder.append(tx0); //bundle tail
+        List<TransactionBuilder> transactionBuilders = preparedData.fromTailToHead();
+        bundleBuilder.append(transactionBuilders);
+        TransactionBuilder tx1 = new TransactionBuilder();
+        tx1.address="ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
+        bundleBuilder.append(tx1);
+        return bundleBuilder.build();
+    }
 
     private static IxiModule getModuleByName(IxiModuleHolder moduleHolder, String name){
         for(IxiModule ixiModule:moduleHolder.getModules()){

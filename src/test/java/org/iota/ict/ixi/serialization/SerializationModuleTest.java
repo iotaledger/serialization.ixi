@@ -9,6 +9,7 @@ import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.bundle.BundleBuilder;
+import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -124,6 +125,26 @@ public class SerializationModuleTest {
 
     @Test
     public void prepareBigDataFragment(){
+        Bundle bundle = createBundle();
+        assertEquals("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ",bundle.getHead().address());
+        assertEquals("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",bundle.getTail().address());
+        assertEquals( MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build().hash(), bundle.getHead().getTrunk().extraDataDigest());
+    }
+
+
+    @Test
+    public void loadFragmentDataTest(){
+        Bundle bundle = createBundle();
+        List<Transaction> txs = bundle.getTransactions();
+        Transaction fragmentHead = txs.get(1);
+        String dataHeadHash = fragmentHead.hash;
+        for(int i = txs.size()-1; i<=0 ;i--){
+
+        }
+    }
+
+
+    private Bundle createBundle() {
         SampleSerializableClass myData = new SampleSerializableClass();
         myData.isTest = true;
         myData.myLabel = "hello world";
@@ -140,11 +161,9 @@ public class SerializationModuleTest {
         TransactionBuilder tx1 = new TransactionBuilder();
         tx1.address="ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
         bundleBuilder.append(tx1);
-        Bundle bundle = bundleBuilder.build(); //bundle head
-        assertEquals("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ",bundle.getHead().address());
-        assertEquals("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",bundle.getTail().address());
-        assertEquals( MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build().hash(), bundle.getHead().getTrunk().extraDataDigest());
+        return bundleBuilder.build();
     }
+
 
 
 }

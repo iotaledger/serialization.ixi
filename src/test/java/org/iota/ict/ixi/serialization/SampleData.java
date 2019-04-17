@@ -7,6 +7,9 @@ import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.ixi.serialization.model.md.FieldType;
+import org.iota.ict.model.bundle.Bundle;
+import org.iota.ict.model.bundle.BundleBuilder;
+import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigDecimal;
@@ -14,6 +17,8 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SampleData {
 

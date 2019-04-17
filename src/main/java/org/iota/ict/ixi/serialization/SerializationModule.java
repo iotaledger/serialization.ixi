@@ -135,16 +135,6 @@ public class SerializationModule extends IxiModule {
         return dataFragment.getValue(index);
     }
 
-    /**
-     * @return the value of key at index
-     * @throws IndexOutOfBoundsException when index is invalid
-     * @throws UnknownMetadataException  when referenced metadata is unknown or invalid
-     */
-    public Object getValueAtIndex(StructuredDataFragment dataFragment, int index) {
-        //TODO
-        return null;
-    }
-
     void registerMetadata(MetadataFragment metadataFragment) {
         metadatas.put(metadataFragment.hash(), metadataFragment);
     }
@@ -242,9 +232,14 @@ public class SerializationModule extends IxiModule {
      * @return a prepared MetadataFragment.
      */
     public MetadataFragment.Prepared prepareMetadata(Class clazz) {
-        return  new MetadataFragment.Builder()
+        return  MetadataFragment.Builder
                 .fromClass(clazz)
                 .prepare();
+    }
+
+    //for testing only
+    public void forgetAllMetadata() {
+        metadatas.clear();
     }
 
 
