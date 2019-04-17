@@ -62,8 +62,8 @@ public class SerializationModule extends IxiModule {
     }
 
     /**
-     * @return the MetadataFragment including transaction with transactionHash,
-     * or null if the transaction is not part of a valid MetadataFragment.
+     * @return the MetadataFragment with head transaction identified by transactionHash,
+     * or null if the transaction is not the head of a valid MetadataFragment.
      * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
      */
     public MetadataFragment loadMetadata(String transactionHash) {
@@ -105,6 +105,13 @@ public class SerializationModule extends IxiModule {
         return structuredDataFragment;
     }
 
+    /**
+     * Pull structured data from the tangle
+     * @param transactionHash
+     * @param clazz the serializable class (i.e. class annotated with @SerializableField) corresponding to the target transactionHash
+     * @param <T>
+     * @return the deserialized data or null when transaction with transactionHash is not found or is not data-fragment-head transaction.
+     */
     public <T> T loadFragmentData(String transactionHash, Class<T> clazz) {
         if (!Utils.isValidHash(transactionHash)) {
             throw new IllegalArgumentException("'" + transactionHash + "' is not a valid transaction hash");
@@ -143,6 +150,10 @@ public class SerializationModule extends IxiModule {
         return metadatas.get(hash);
     }
 
+    /**
+     * Register a dataListener to be notified when a StructuredDataFragment of a particular class clazz is received.
+     * @param listener : the listener to callback
+     */
     public <T> void registerDataListener(Class<T> clazz, final DataFragmentListener<T> listener) {
         MetadataFragment metadataFragment = MetadataFragment.Builder.fromClass(clazz).build();
         registerMetadata(metadataFragment);
@@ -166,22 +177,21 @@ public class SerializationModule extends IxiModule {
     }
 
 
-
-
+    /**
+     * Register a dataListener to be notified when a StructuredDataFragment is received.
+     * @param matcher : a filter for fragment of interest
+     * @param listener : the listener to callback
+     */
     public void registerDataListener(DataFragmentFilter matcher, DataFragmentListener<StructuredDataFragment> listener) {
         listeners.put(matcher, listener);
     }
 
-    public void notifyListeners(StructuredDataFragment structuredDataFragment) {
+    void notifyListeners(StructuredDataFragment structuredDataFragment) {
         for (DataFragmentFilter dataFragmentFilter : listeners.keySet()) {
             if (dataFragmentFilter.match(structuredDataFragment)) {
                 listeners.get(dataFragmentFilter).onData(structuredDataFragment);
             }
         }
-    }
-
-    public StructuredDataFragment buildDataFragment(Object data){
-        return new StructuredDataFragment.Builder().fromInstance(data).build();
     }
 
     public void publish(Object data){
@@ -219,7 +229,7 @@ public class SerializationModule extends IxiModule {
     }
 
     /**
-     * Build a MetadataFragment.Prepared for data.
+     * Build a MetadataFragment.Prepared for clazz.
      * The MetadataFragment.Prepared can be used later to insert the metadataFragment in a Bundle.
      * @param clazz : properly annotated class
      * @return a prepared MetadataFragment.
