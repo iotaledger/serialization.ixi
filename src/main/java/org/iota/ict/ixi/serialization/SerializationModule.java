@@ -70,8 +70,14 @@ public class SerializationModule extends IxiModule {
         if (!Utils.isValidHash(transactionHash)) {
             throw new IllegalArgumentException("'" + transactionHash + "' is not a valid transaction hash");
         }
-        //TODO
-        return null;
+        Transaction tx = ixi.findTransactionByHash(transactionHash);
+        if(tx==null){
+            return null;
+        }
+        if(!MetadataFragment.isHead(tx)){
+            return null;
+        }
+        return new MetadataFragment.Builder().fromTransaction(tx);
     }
 
     /**
@@ -302,39 +308,16 @@ public class SerializationModule extends IxiModule {
         private Transaction processMetadataFragment(Transaction fragmentHead){
             assert MetadataFragment.isHead(fragmentHead);
             String message = fragmentHead.signatureFragments();
+            Transaction t = fragmentHead;
             if(!message.startsWith(MetadataFragment.METADATA_LANGUAGE_VERSION)){
                 //unknown metadata version
-                Transaction t = fragmentHead;
-                while(!MetadataFragment.isTail(t)) t=t.getTrunk();
+                while(t!=null && !MetadataFragment.isTail(t)) t=t.getTrunk();
                 return t;
             }
-            //let's count the keys
-            int keyCount = 0;
-            int startIndex = 3;
-            Transaction t = fragmentHead;
-            while(true){
-                String descriptor;
-                if(startIndex+ FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH<Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength) {
-                    descriptor = message.substring(startIndex, startIndex + FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
-
-                    startIndex += FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH;
-                }else{
-                    descriptor = message.substring(startIndex, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
-                    int remainingLength = FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH - descriptor.length();
-                    t = t.getTrunk();
-                    message = t.signatureFragments();
-                    startIndex = remainingLength;
-                    descriptor += message.substring(0, remainingLength);
-                }
-
-                if (descriptor.equals("99999999999999999999999999999999999999999999999999999")) {
-                    break;
-                }else{
-                    keyCount++;
-                }
-                assert MetadataFragment.isTail(t);
-                MetadataFragment metadataFragment = new MetadataFragment(fragmentHead, keyCount);
+            MetadataFragment metadataFragment = new MetadataFragment.Builder().fromTransaction(t);
+            if(metadataFragment != null){
                 registerMetadata(metadataFragment);
+                return metadataFragment.getTailTransaction();
             }
             return t;
         }

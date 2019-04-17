@@ -34,7 +34,7 @@ public class MetadataFragment extends BundleFragment {
     }
 
     public static boolean isTail(Transaction transaction){
-        return Trytes.toTrits(transaction.tag())[3]==1;
+        return transaction!=null && Trytes.toTrits(transaction.tag())[3]==1;
     }
 
     public static boolean isHead(Transaction transaction){
@@ -143,6 +143,39 @@ public class MetadataFragment extends BundleFragment {
             return builder;
         }
 
+        public MetadataFragment fromTransaction(Transaction fragmentHead){
+            int keyCount = 0;
+            int startIndex = MetadataFragment.METADATA_LANGUAGE_VERSION.length();
+            Transaction t = fragmentHead;
+            String message = fragmentHead.signatureFragments();
+            if(!message.startsWith(MetadataFragment.METADATA_LANGUAGE_VERSION)){
+                //unknown metadata version
+                return null;
+            }
+            while(true){
+                String descriptor;
+                if(startIndex+ FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH<Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength) {
+                    descriptor = message.substring(startIndex, startIndex + FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
+
+                    startIndex += FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH;
+                }else{
+                    descriptor = message.substring(startIndex, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+                    int remainingLength = FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH - descriptor.length();
+                    t = t.getTrunk();
+                    message = t.signatureFragments();
+                    startIndex = remainingLength;
+                    descriptor += message.substring(0, remainingLength);
+                }
+
+                if (descriptor.equals("99999999999999999999999999999999999999999999999999999")) {
+                    assert MetadataFragment.isTail(t);
+                    return new MetadataFragment(fragmentHead, keyCount);
+                }else{
+                    keyCount++;
+                }
+            }
+        }
+
         public Builder appendField(FieldDescriptor descriptor){
             fields.add(descriptor);
             return this;
@@ -175,7 +208,7 @@ public class MetadataFragment extends BundleFragment {
 
         private static TransactionBuilder prepareFreshTransactionBuilder(String remaining){
             TransactionBuilder transactionBuilder = new TransactionBuilder();
-            transactionBuilder.signatureFragments = /*METADATA_LANGUAGE_VERSION +*/ remaining;
+            transactionBuilder.signatureFragments = remaining;
             return  transactionBuilder;
         }
 
