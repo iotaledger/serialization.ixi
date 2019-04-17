@@ -168,7 +168,7 @@ public class MetadataFragment extends BundleFragment {
                     descriptor += message.substring(0, remainingLength);
                 }
 
-                if (descriptor.equals("99999999999999999999999999999999999999999999999999999")) {
+                if (descriptor.equals(FieldDescriptor.NULL_DESCRIPTOR_TRYTES)) {
                     assert MetadataFragment.isTail(t);
                     return new MetadataFragment(fragmentHead, keyCount);
                 }else{

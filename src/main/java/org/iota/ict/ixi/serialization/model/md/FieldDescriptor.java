@@ -30,6 +30,13 @@ public class FieldDescriptor {
 
     private final String trytes;
 
+    static {
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<FIELD_DESCRIPTOR_TRYTE_LENGTH;i++)sb.append("9");
+        NULL_DESCRIPTOR_TRYTES = sb.toString();
+    }
+    public static final String NULL_DESCRIPTOR_TRYTES;
+
     public static FieldDescriptor withAsciiLabel(FieldType type, long tritSize, String label) {
         return withAsciiLabel(type, BigInteger.valueOf(tritSize), label);
     }

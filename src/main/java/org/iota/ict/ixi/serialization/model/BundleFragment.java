@@ -15,6 +15,7 @@ public abstract class BundleFragment {
     public static int CURL_ROUNDS_BUNDLE_FRAGMANT_HASH = 27;
 
     private Transaction headTransaction;
+    private String hash;
 
     public BundleFragment(Transaction headTransaction) {
         this.headTransaction = headTransaction;
@@ -33,12 +34,19 @@ public abstract class BundleFragment {
     }
 
     public String hash(){
+        if(hash!=null){
+            return hash;
+        }
         StringBuilder sb = new StringBuilder(headTransaction.signatureFragments());
         Transaction tx = headTransaction;
-        while(!tx.isBundleTail){
-            sb.append(tx.signatureFragments());
+        while(tx!=null && !hasTailFlag(tx)){
+            tx = tx.getTrunk();
+            if(tx!=null) {
+                sb.append(tx.signatureFragments());
+            }
         }
-        return IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_BUNDLE_FRAGMANT_HASH);
+        hash = IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_BUNDLE_FRAGMANT_HASH);
+        return hash;
     }
 
     abstract boolean hasTailFlag(Transaction t);
@@ -53,13 +61,13 @@ public abstract class BundleFragment {
         private String referencedBranch;
 
         abstract public T build();
-
-        public void setIsHeadFragment(boolean isHeadFragment){
-            this.isHeadFragment = isHeadFragment;
-        }
-        public void setIsTailFragment(boolean isTailFragment){
-            this.isTailFragment = isTailFragment;
-        }
+//
+//        public void setIsHeadFragment(boolean isHeadFragment){
+//            this.isHeadFragment = isHeadFragment;
+//        }
+//        public void setIsTailFragment(boolean isTailFragment){
+//            this.isTailFragment = isTailFragment;
+//        }
 
         public Builder<T> setReferencedBranch(String referencedBranch) {
             this.referencedBranch = referencedBranch;

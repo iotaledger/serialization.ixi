@@ -155,8 +155,46 @@ public class SerializationModuleIT {
         assertArrayEquals(expected,serializationModule.getTritsForKeyAtIndex(dataFragment,1));
     }
 
+    @Test
+    public void loadFragmentDataWithClassTest() throws UnknownMetadataException {
+        String dataHeadHash = createAndSubmitBundle();
+        serializationModule.registerMetadata(MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build());
+        SampleSerializableClass data = serializationModule.loadFragmentData(dataHeadHash, SampleSerializableClass.class);
+        assertNotNull(data);
+        assertTrue(data.isTest);
+        assertEquals("hello world", data.myLabel);
+    }
+
+    @Test
+    public void loadFragmentDataFromNoFragmentHeadTest() throws UnknownMetadataException {
+        Bundle bundle = createDataBundle();
+        List<Transaction> txs = bundle.getTransactions();
+        for(int i = txs.size()-1; i>=0 ;i--){
+            ict.submit(txs.get(i));
+        }
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Transaction nonHead = txs.get(0);
+        StructuredDataFragment dataFragment = serializationModule.loadFragmentData(nonHead.hash);
+        assertNull(dataFragment);
+    }
+
+    @Test
+    public void metadataFragmentIsRegistered(){
+        serializationModule.forgetAllMetadata();
+        MetadataFragment.Prepared metadataFragment = serializationModule.prepareMetadata(SampleSerializableClass.class);
+        Bundle bundle = createMetadataBundle(metadataFragment);
+        String classHash = MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build().hash();
+        assertNull(serializationModule.getMetadataFragment(classHash));
+        Transaction bundleHead = submitBundle(bundle);
+        assertNotNull(serializationModule.getMetadataFragment(classHash));
+    }
+
     private String createAndSubmitBundle() {
-        Bundle bundle = createBundle();
+        Bundle bundle = createDataBundle();
         List<Transaction> txs = bundle.getTransactions();
         Transaction fragmentHead = txs.get(1);
         String dataHeadHash = fragmentHead.hash;
@@ -171,8 +209,38 @@ public class SerializationModuleIT {
         return dataHeadHash;
     }
 
+    private Transaction submitBundle(Bundle bundle) {
+        List<Transaction> txs = bundle.getTransactions();
+        for(int i = txs.size()-1; i>=0 ;i--){
+            ict.submit(txs.get(i));
+        }
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return bundle.getHead();
+    }
 
-    private Bundle createBundle() {
+
+
+    private Bundle createMetadataBundle(MetadataFragment.Prepared prepared) {
+
+        BundleBuilder bundleBuilder = new BundleBuilder();
+
+        TransactionBuilder tx0 = new TransactionBuilder();
+        tx0.address="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        bundleBuilder.append(tx0); //bundle tail
+        List<TransactionBuilder> transactionBuilders = prepared.fromTailToHead();
+        bundleBuilder.append(transactionBuilders);
+        TransactionBuilder tx1 = new TransactionBuilder();
+        tx1.address="ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
+        bundleBuilder.append(tx1);
+        return bundleBuilder.build();
+    }
+
+
+    private Bundle createDataBundle() {
         SampleSerializableClass myData = new SampleSerializableClass();
         myData.isTest = true;
         myData.myLabel = "hello world";

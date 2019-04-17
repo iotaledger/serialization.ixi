@@ -131,19 +131,6 @@ public class SerializationModuleTest {
         assertEquals( MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build().hash(), bundle.getHead().getTrunk().extraDataDigest());
     }
 
-
-    @Test
-    public void loadFragmentDataTest(){
-        Bundle bundle = createBundle();
-        List<Transaction> txs = bundle.getTransactions();
-        Transaction fragmentHead = txs.get(1);
-        String dataHeadHash = fragmentHead.hash;
-        for(int i = txs.size()-1; i<=0 ;i--){
-
-        }
-    }
-
-
     private Bundle createBundle() {
         SampleSerializableClass myData = new SampleSerializableClass();
         myData.isTest = true;

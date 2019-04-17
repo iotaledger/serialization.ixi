@@ -277,9 +277,13 @@ public class SerializationModule extends IxiModule {
             Transaction fragmentTail = null;
             if(isFragmentHead(t)){
                 if(MetadataFragment.isHead(t)){
-                    fragmentTail = processMetadataFragment(t);
+                    if(foundMetadataFragmentTail(bundle, t)) {
+                        fragmentTail = processMetadataFragment(t);
+                    }
                 }else{
-                    fragmentTail = processStructuredDataFragment(t);
+                    if(foundStructuredDataFragmentTail(bundle, t)) {
+                        fragmentTail = processStructuredDataFragment(t);
+                    }
                 }
             }
 
@@ -287,6 +291,22 @@ public class SerializationModule extends IxiModule {
             if(fragmentTail!=null && !fragmentTail.isBundleTail && fragmentTail.getTrunk()!=null){
                 processBundle(bundle, fragmentTail.getTrunk());
             }
+        }
+
+        private boolean foundMetadataFragmentTail(Bundle bundle, Transaction fragmentHead){
+            Transaction t = fragmentHead;
+            while(t!=null && !MetadataFragment.isTail(t)){
+                t = t.getTrunk();
+            }
+            return t!=null && MetadataFragment.isTail(t);
+        }
+
+        private boolean foundStructuredDataFragmentTail(Bundle bundle, Transaction fragmentHead){
+            Transaction t = fragmentHead;
+            while(t!=null && !StructuredDataFragment.isTail(t)){
+                t = t.getTrunk();
+            }
+            return t!=null && StructuredDataFragment.isTail(t);
         }
 
         private boolean isFragmentHead(Transaction transaction){
