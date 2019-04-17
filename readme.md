@@ -107,7 +107,7 @@ Sample myData = new Sample();
 myData.isTest = true;
 myData.myLabel = "hello world";
 ...
-PreparedDataFragment preparedData = serializationModule.prepare(myData);
+StructuredDataFragment.Prepared preparedData = serializationModule.prepare(myData);
 ...
 BundleBuilder bundleBuilder = new BundleBuilder();
 ...
@@ -222,7 +222,8 @@ List<byte[]> values = structuredDataFragment.getListValues(3);
 
 ### Pull data API
 
-To pull data from the Tangle you can use one of those methods:
+As an alternative to the DataListener, as soon as you know the transaction hash of the bundle-fragment-head
+and the corresponding meta-data, you can pull data from the Tangle by using one of those methods:
 ```
 MyClass myPulledData = serializationModule.loadData(transactionHash, MyClass.class);
 ```

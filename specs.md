@@ -28,7 +28,7 @@ A *field descriptor* is composed of 3 components of fixed size:
 - The <u>type</u> component (6 trits) indicates the cardinality and optionally the way to interpret the value  
     - the first trit is called the cardinality trit. 
         - A cardinality trit 1 indicates that the field is a "single value" 
-        - A cardinality trit -1 indicates that the field is a "multiple value" 
+        - A cardinality trit -1 indicates that the field is a "multiple value" (i.e. a list of values)
         - A cardinality trit 0 is illegal 
     - the 5 following trits indicates how to interpret the (mutiple-)value(s).
         - 0,0,0,0,0 indicates an unspecified field (i.e. just 'trits')
@@ -72,7 +72,7 @@ The signature_or_message fragment contains the data. Values are of course ordere
 according field descriptor sequence of the MetadataFragment.
 
 When the value is the content of a multiple value field : the 12 first trits of the field indicate the number items 
-in the list. (a list can contains up to 260720 items)
+in the list.
 ![bundles](docs/serialization.png)
 
 <small>*Metadata and StructuredData are represented in 2 different bundles here, but they could be in the same bundle.*</small>
