@@ -13,16 +13,17 @@ import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.network.gossip.GossipEvent;
 import org.iota.ict.network.gossip.GossipPreprocessor;
 import org.iota.ict.utils.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class SerializationModule extends IxiModule {
 
-    public static SerializationModule INSTANCE;
+    private static final Logger LOGGER = LoggerFactory.getLogger(SerializationModule.class);
 
     public SerializationModule(Ixi ixi) {
         super(ixi);
-        INSTANCE = this;
     }
 
     private Map<String, MetadataFragment> metadatas = Collections.synchronizedMap(new LinkedHashMap<>());
@@ -37,12 +38,15 @@ public class SerializationModule extends IxiModule {
     public void onStart() {
         super.onStart();
         ixi.addListener(new BundleListener());
+        LOGGER.info("Serialization.ixi started...");
     }
 
-    public Transaction findTransaction(String hash){
-        System.out.println("searching "+hash);
-        return ixi.findTransactionByHash(hash);
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        LOGGER.info("Serialization.ixi terminated.");
     }
+
     public MetadataFragment buildMetadataFragment(MetadataFragment.Builder builder) {
         if (builder == null) {
             throw new IllegalArgumentException("builder cannot be null");

@@ -223,7 +223,6 @@ public class StructuredDataFragment extends BundleFragment {
                 if(integer==null) return 0;
                 return integer.longValue();
             }
-            System.out.println("here");
         }
         if(descriptor.isAscii()){
             return Utils.asciiFromTrits(value);

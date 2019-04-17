@@ -25,13 +25,6 @@ public class Utils {
         return original;
     }
 
-    public static String removeTrailing9(String s){
-        while(s.length()>0 && s.charAt(s.length()-1)=='9'){
-            s = s.substring(0,s.length()-1);
-        }
-        return s;
-    }
-
     public static String asciiFromTrits(byte[] trits){
         byte[] b = completeTritsBeforeConversion(trits);
         return Trytes.toAscii(Trytes.fromTrits(b));
@@ -67,12 +60,7 @@ public class Utils {
         while(availableTritsInCurrentTransaction<unreadTritsCount){
             byte[] msgTrits = Trytes.toTrits(t.signatureFragments());
             System.arraycopy(msgTrits, startOffset, trits, readTritsCount, availableTritsInCurrentTransaction);
-            if(t.getTrunk()==null){
-                System.out.println("current t is "+t.hash+" isBundleHead :"+t.isBundleHead+" isBundleTail:"+t.isBundleTail);
-                t = SerializationModule.INSTANCE.findTransaction(t.trunkHash());
-            }else {
-                t = t.getTrunk();
-            }
+            t = t.getTrunk();
             readTritsCount +=availableTritsInCurrentTransaction;
             unreadTritsCount -= availableTritsInCurrentTransaction;
             availableTritsInCurrentTransaction = Transaction.Field.SIGNATURE_FRAGMENTS.tritLength;
@@ -120,8 +108,6 @@ public class Utils {
         if(decimal!=null){
             int expLength = tritsLength/3;
             int mantissaLength = tritsLength - expLength;
-            byte[] expTrits = new byte[expLength];
-            byte[] mantissaTrits = new byte[mantissaLength];
             System.arraycopy(Trytes.toTrits(Trytes.fromNumber(BigInteger.valueOf(decimal.scale()),expLength)),0,ret,mantissaLength,expLength);
             System.arraycopy(Trytes.toTrits(Trytes.fromNumber(decimal.unscaledValue(),mantissaLength)),0,ret,0,mantissaLength);
         }

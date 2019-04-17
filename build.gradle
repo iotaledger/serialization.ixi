@@ -25,15 +25,16 @@ sourceSets {
 }
 
 configurations {
-    integrationTestCompile.extendsFrom testCompile
+    integrationTestCompile.extendsFrom testCompileOnly, testCompile
     integrationTestRuntime.extendsFrom testRuntime
 }
 
 dependencies {
-    compile 'com.github.iotaledger:ict:0.6'
-    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.11.1'
-    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.1'
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.21'
+    compileOnly 'com.github.iotaledger:ict:0.6'
+    testCompileOnly ('com.github.iotaledger:ict:0.6') {
+        exclude group: 'org.slf4j', module: 'slf4j-nop'
+    }
+    testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.4.1'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.21.0'
 }

@@ -1,6 +1,9 @@
 package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.Ict;
+import org.iota.ict.ixi.IxiModule;
+import org.iota.ict.ixi.IxiModuleHolder;
+import org.iota.ict.ixi.IxiModuleInfo;
 import org.iota.ict.ixi.serialization.model.AllTypesSampleData;
 import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
@@ -25,12 +28,11 @@ public class SerializationModuleIT {
 
     @BeforeAll
     public static void startIct() throws Exception {
-        System.setProperty("log4j.configurationFile","log4j2.xml");
         Properties properties = new Properties();
         ict = new Ict(properties.toFinal());
         ict.getModuleHolder().loadVirtualModule(SerializationModule.class, "Serialization.ixi");
         ict.getModuleHolder().startAllModules();
-        serializationModule = (SerializationModule) ict.getModuleHolder().getModule("virtual/Serialization.ixi");
+        serializationModule = (SerializationModule) getModuleByName(ict.getModuleHolder(),"Serialization.ixi");
     }
 
     @AfterAll
@@ -125,5 +127,15 @@ public class SerializationModuleIT {
 
     }
 
+
+    private static IxiModule getModuleByName(IxiModuleHolder moduleHolder, String name){
+        for(IxiModule ixiModule:moduleHolder.getModules()){
+            IxiModuleInfo info = moduleHolder.getInfo(ixiModule);
+            if(info.name.equals(name)){
+                return ixiModule;
+            }
+        }
+        return null;
+    }
 
 }
