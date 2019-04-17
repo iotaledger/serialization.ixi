@@ -79,10 +79,6 @@ public class FieldDescriptor {
         return trytes;
     }
 
-    public boolean isMultipleValue(){
-        return toTrits(trytes.charAt(0))[0]==-1;
-    }
-
     public int getTryteSize() {
         return tritSize.divide(BIG_INT_3).intValue();
     }
@@ -111,10 +107,6 @@ public class FieldDescriptor {
 
     private static String asciiLabelToTrytes(String label) {
         return Utils.fit(Trytes.fromAscii(label == null ? "" : label), FIELD_LABEL_TRYTE_LENGTH);
-    }
-
-    private static byte[] toTrits(char tryte) {
-        return Trytes.TRITS_BY_TRYTE[Trytes.TRYTES.indexOf(tryte)];
     }
 
     public boolean isSingleValue() {

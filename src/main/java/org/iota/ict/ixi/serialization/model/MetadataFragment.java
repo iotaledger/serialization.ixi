@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("WeakerAccess")
 public class MetadataFragment extends BundleFragment {
 
     public static final String METADATA_LANGUAGE_VERSION = "A99";

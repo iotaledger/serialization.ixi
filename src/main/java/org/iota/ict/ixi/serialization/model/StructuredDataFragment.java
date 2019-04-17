@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 
+@SuppressWarnings("WeakerAccess")
 public class StructuredDataFragment extends BundleFragment {
 
     private static final BigInteger MESSAGE_SIZE = BigInteger.valueOf(Transaction.Field.SIGNATURE_FRAGMENTS.tritLength);

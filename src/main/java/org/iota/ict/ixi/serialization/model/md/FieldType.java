@@ -4,6 +4,7 @@ import org.iota.ict.ixi.serialization.util.Utils;
 
 import java.util.Objects;
 
+@SuppressWarnings("WeakerAccess")
 public class FieldType {
 
     public static final String TRITS = "A9";        //1,0,0,0,0,0

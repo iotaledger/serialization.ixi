@@ -5,7 +5,6 @@ import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.serialization.model.MetadataFragment;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
-import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.bundle.Bundle;
@@ -18,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+@SuppressWarnings("WeakerAccess")
 public class SerializationModule extends IxiModule {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SerializationModule.class);
@@ -147,25 +147,18 @@ public class SerializationModule extends IxiModule {
         MetadataFragment metadataFragment = MetadataFragment.Builder.fromClass(clazz).build();
         registerMetadata(metadataFragment);
         final String classHash = metadataFragment.hash();
-        DataFragmentFilter matcher = new DataFragmentFilter() {
-            @Override
-            public boolean match(StructuredDataFragment dataFragment) {
-                return dataFragment.getClassHash().equals(classHash);
-            }
-        };
+        DataFragmentFilter matcher = dataFragment ->
+                dataFragment.getClassHash().equals(classHash);
 
-        DataFragmentListener<StructuredDataFragment> wrappedListener = new DataFragmentListener<StructuredDataFragment>() {
-            @Override
-            public void onData(StructuredDataFragment dataFragment) {
-                T data = null;
-                try {
-                    data = dataFragment.deserializeToClass(clazz);
-                } catch (UnknownMetadataException e) {
-                    return;
-                }
-                if (data != null) {
-                    listener.onData(data);
-                }
+        DataFragmentListener<StructuredDataFragment> wrappedListener = dataFragment -> {
+            T data = null;
+            try {
+                data = dataFragment.deserializeToClass(clazz);
+            } catch (UnknownMetadataException e) {
+                return;
+            }
+            if (data != null) {
+                listener.onData(data);
             }
         };
 
