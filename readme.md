@@ -55,16 +55,16 @@ Start by defining a data class with required annotations :
 
 ```
 public class Sample {
-    @SerializableField(index = 0, tritLength = 1, label = "isTest", converter = TritsConverter.BOOLEAN.class)
+    @SerializableField(index = 0, tritLength = 1, converter = TritsConverter.BOOLEAN.class)
     public boolean isTest;
 
-    @SerializableField(index = 1, tritLength = 99, label = "myLabel", converter = TritsConverter.ASCII.class)
+    @SerializableField(index = 1, tritLength = 99, converter = TritsConverter.ASCII.class)
     public String myLabel;
 
-    @SerializableField(index = 2, tritLength = 243, label = "aReference", converter = TritsConverter.TRYTES.class)
+    @SerializableField(index = 2, tritLength = 243, converter = TritsConverter.TRYTES.class)
     public String aReferenceHash;
 
-    @SerializableField(index = 3, tritLength = 243, label = "aReferenceList", converter = TritsConverter.TRYTES.class)
+    @SerializableField(index = 3, tritLength = 243, converter = TritsConverter.TRYTES.class)
     public List<String> listOfReferences;
 }
 ```
@@ -153,9 +153,9 @@ Building a MetadataFragment consist essentially in appending FieldDescriptor to 
 A fieldDescriptor describe a serialized field and match exactly the `@SerializableField` annotation presented earlier.
 
 ```
-FieldDescriptor name = FieldDescriptor.withAsciiLabel(false, 243, "name");
-FieldDescriptor age = FieldDescriptor.withAsciiLabel(false, 7, "age");
-FieldDescriptor isMale = FieldDescriptor.withAsciiLabel(false, 1, "isMale");
+FieldDescriptor name = FieldDescriptor.build(false, 243);
+FieldDescriptor age = FieldDescriptor.build(false, 7);
+FieldDescriptor isMale = FieldDescriptor.build(false, 1);
 MetadataFragment metadatafragment =  new MetadataFragment.Builder()
                                             .appendField(name)
                                             .appendField(age)

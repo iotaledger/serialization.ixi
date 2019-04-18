@@ -1,30 +1,29 @@
 package org.iota.ict.ixi.serialization.model.md;
 
-import org.iota.ict.ixi.serialization.util.Utils;
+import org.iota.ict.ixi.serialization.util.SerializableField;
 import org.iota.ict.utils.Trytes;
 
+import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.util.List;
 
 @SuppressWarnings("WeakerAccess")
 public class FieldDescriptor {
 
     public static final int FIELD_TYPE_TRIT_LENGTH = 3;
     public static final int FIELD_SIZE_TRIT_LENGTH = 12;
-    public static final int FIELD_LABEL_TRIT_LENGTH = 144;
 
     public static final int FIELD_TYPE_TRYTE_LENGTH = FIELD_TYPE_TRIT_LENGTH / 3;
     public static final int FIELD_SIZE_TRYTE_LENGTH = FIELD_SIZE_TRIT_LENGTH / 3;
-    public static final int FIELD_LABEL_TRYTE_LENGTH = FIELD_LABEL_TRIT_LENGTH / 3;
 
     public static final int FIELD_SIZE_TRYTE_OFFSET = FIELD_TYPE_TRYTE_LENGTH;
     public static final int LABEL_TRYTE_OFFSET = FIELD_SIZE_TRYTE_OFFSET + FIELD_SIZE_TRYTE_LENGTH;
 
-    public static final int FIELD_DESCRIPTOR_TRIT_LENGTH = FIELD_TYPE_TRIT_LENGTH + FIELD_SIZE_TRIT_LENGTH + FIELD_LABEL_TRIT_LENGTH;
+    public static final int FIELD_DESCRIPTOR_TRIT_LENGTH = FIELD_TYPE_TRIT_LENGTH + FIELD_SIZE_TRIT_LENGTH;
     public static final int FIELD_DESCRIPTOR_TRYTE_LENGTH = FIELD_DESCRIPTOR_TRIT_LENGTH /3;
 
     private boolean isList;
     private BigInteger tritSize;
-    private String label;
 
     private final String trytes;
 
@@ -35,32 +34,26 @@ public class FieldDescriptor {
     }
     public static final String NULL_DESCRIPTOR_TRYTES;
 
-    public static FieldDescriptor withAsciiLabel(boolean isList, long tritSize, String label) {
-        return withAsciiLabel(isList, BigInteger.valueOf(tritSize), label);
+    public static FieldDescriptor build(boolean isList, long tritSize) {
+        return build(isList, BigInteger.valueOf(tritSize));
     }
 
-    public static FieldDescriptor withTrytesLabel(boolean isList, long tritSize, String label) {
-        return withTrytesLabel(isList, BigInteger.valueOf(tritSize), label);
-    }
-
-    public static FieldDescriptor withAsciiLabel(boolean isList, BigInteger tritSize, String label) {
+    public static FieldDescriptor build(boolean isList, BigInteger tritSize) {
         checkInputs(tritSize);
         return new FieldDescriptor(
                 isList,
-                tritSize,
-                asciiLabelToTrytes(label));
+                tritSize);
     }
 
-    public static FieldDescriptor withTrytesLabel(boolean isList, BigInteger tritSize, String label){
-        checkInputs(tritSize);
-        return new FieldDescriptor(isList, tritSize, label);
+    public static FieldDescriptor fromField(Field field){
+        SerializableField annotation = field.getAnnotation(SerializableField.class);
+        return FieldDescriptor.build(field.getType().isAssignableFrom(List.class),annotation.tritLength());
     }
 
     public static FieldDescriptor fromTrytes(String trytes) {
         return new FieldDescriptor(
                 Trytes.toTrits(trytes.substring(0,1))[0]==-1,
-                Trytes.toNumber(trytes.substring(FIELD_SIZE_TRYTE_OFFSET, LABEL_TRYTE_OFFSET)),
-                trytes.substring(LABEL_TRYTE_OFFSET)
+                Trytes.toNumber(trytes.substring(FIELD_SIZE_TRYTE_OFFSET, LABEL_TRYTE_OFFSET))
              );
     }
 
@@ -72,26 +65,16 @@ public class FieldDescriptor {
         return tritSize;
     }
 
-    public String getLabel() {
-        return label;
-    }
-
-    public String getAsciiLabel() {
-        return Trytes.toAscii(label).trim();
-    }
-
     public String toTrytes(){
         return trytes;
     }
 
-    private FieldDescriptor(boolean isList, BigInteger tritSize, String labelAsTrytes){
+    private FieldDescriptor(boolean isList, BigInteger tritSize){
         this.isList = isList;
         this.tritSize = tritSize;
-        this.label = labelAsTrytes.length()>FIELD_LABEL_TRYTE_LENGTH ? labelAsTrytes.substring(0,FIELD_LABEL_TRYTE_LENGTH) : labelAsTrytes;
 
         trytes = (isList?"Z":"A") +
-                Trytes.fromNumber(tritSize, FIELD_SIZE_TRYTE_LENGTH) +
-                labelAsTrytes;
+                Trytes.fromNumber(tritSize, FIELD_SIZE_TRYTE_LENGTH);
     }
 
     private static void checkInputs(BigInteger size) {
@@ -101,10 +84,6 @@ public class FieldDescriptor {
         if(size.longValue()<=0){
             throw new IllegalArgumentException("size cannot be < 1");
         }
-    }
-
-    private static String asciiLabelToTrytes(String label) {
-        return Utils.fit(Trytes.fromAscii(label == null ? "" : label), FIELD_LABEL_TRYTE_LENGTH);
     }
 
     public boolean isSingleValue() {

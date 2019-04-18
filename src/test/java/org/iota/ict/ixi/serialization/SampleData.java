@@ -7,7 +7,6 @@ import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.ixi.serialization.util.TritsConverter;
-import org.iota.ict.utils.Trytes;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -46,14 +45,14 @@ public class SampleData {
         allTypesSample = buildAllTypeSampleInstance();
     }
     private static MetadataFragment buildClassWithOneAsciiField(){
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
+        FieldDescriptor descriptor = FieldDescriptor.build(false,48);
         return new MetadataFragment.Builder()
                 .appendField(descriptor)
                 .build();
     }
 
     private static MetadataFragment buildClassWith2AsciiFields(){
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
+        FieldDescriptor descriptor = FieldDescriptor.build(false,48);
         return new MetadataFragment.Builder()
                 .appendField(descriptor)
                 .appendField(descriptor)
@@ -61,9 +60,9 @@ public class SampleData {
     }
 
     private static MetadataFragment buildClassWith3Fields(){
-        FieldDescriptor name = FieldDescriptor.withAsciiLabel(false,243,"name");
-        FieldDescriptor age = FieldDescriptor.withAsciiLabel(false,7,"age");
-        FieldDescriptor isMale = FieldDescriptor.withAsciiLabel(false,1,"isMale");
+        FieldDescriptor name = FieldDescriptor.build(false,243);
+        FieldDescriptor age = FieldDescriptor.build(false,7);
+        FieldDescriptor isMale = FieldDescriptor.build(false,1);
         return new MetadataFragment.Builder()
                 .appendField(name)
                 .appendField(age)
@@ -72,16 +71,16 @@ public class SampleData {
     }
 
     private static MetadataFragment buildClassWithAsciiAndList(){
-        FieldDescriptor project = FieldDescriptor.withAsciiLabel(false,243,"name");
-        FieldDescriptor languages = FieldDescriptor.withAsciiLabel(true,243,"languages");
+        FieldDescriptor project = FieldDescriptor.build(false,243);
+        FieldDescriptor languages = FieldDescriptor.build(true,243);
         return new MetadataFragment.Builder()
                     .appendField(project)
                     .appendField(languages)
                     .build();
     }
     private static MetadataFragment buildClassWithListAndAscii(){
-        FieldDescriptor project = FieldDescriptor.withAsciiLabel(false,243,"name");
-        FieldDescriptor languages = FieldDescriptor.withAsciiLabel(true,243,"languages");
+        FieldDescriptor project = FieldDescriptor.build(false,243);
+        FieldDescriptor languages = FieldDescriptor.build(true,243);
         return new MetadataFragment.Builder()
                 .appendField(languages)
                 .appendField(project)

@@ -14,8 +14,8 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
-        builder.appendField(FieldDescriptor.withAsciiLabel(false,48,"a simple label"));
+        FieldDescriptor descriptor = FieldDescriptor.build(false,48);
+        builder.appendField(FieldDescriptor.build(false,48));
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION+descriptor.toTrytes();
         expected = Trytes.padRight(expected, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -30,7 +30,7 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentWith40FieldTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
+        FieldDescriptor descriptor = FieldDescriptor.build(false,48);
         for(int i=0; i<40 ; i++){
             builder.appendField(descriptor);
         }
@@ -51,14 +51,16 @@ public class MetadataFragmentTest {
 
     @Test
     public void simpleMetadataFragmentWith42FieldTest(){
+        //be sure that we add enough descriptors to have 2 transactions in the fragment
+        final int COUNT = 1+Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength / FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH;
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
-        for(int i=0; i<42 ; i++){
+        FieldDescriptor descriptor = FieldDescriptor.build(false,48);
+        for(int i=0; i<COUNT ; i++){
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
-        for(int i=0; i<42 ; i++){
+        for(int i=0; i<COUNT ; i++){
             expected+=descriptor.toTrytes();
         }
         expected = expected.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -70,19 +72,21 @@ public class MetadataFragmentTest {
 
         assertTrue(metadataFragment.hasHeadFlag(metadataFragment.getHeadTransaction()));
         assertTrue(metadataFragment.hasTailFlag(metadataFragment.getTailTransaction()));
-        assertEquals(42, metadataFragment.getKeyCount());
+        assertEquals(COUNT, metadataFragment.getKeyCount());
     }
 
     @Test
     public void simpleMetadataFragmentWith81FieldTest(){
+        //be sure that we add enough descriptors to have 3 transactions in the fragment
+        final int COUNT = 2*(1+Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength / FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
-        for(int i=0; i<85 ; i++){
+        FieldDescriptor descriptor = FieldDescriptor.build(false,48);
+        for(int i=0; i<COUNT ; i++){
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION;
-        for(int i=0; i<42 ; i++){
+        for(int i=0; i<COUNT ; i++){
             expected+=descriptor.toTrytes();
         }
         expected = expected.substring(0,Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -96,14 +100,14 @@ public class MetadataFragmentTest {
 
         assertTrue(metadataFragment.hasHeadFlag(metadataFragment.getHeadTransaction()));
         assertTrue(metadataFragment.hasTailFlag(metadataFragment.getTailTransaction()));
-        assertEquals(85, metadataFragment.getKeyCount());
+        assertEquals(COUNT, metadataFragment.getKeyCount());
     }
 
     @Test
     public void bigMetadataFragmentTest() {
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
         for (int i = 0; i < 85; i++) {
-            FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(i % 7 == 0, 48 + i, "a simple label" + i);
+            FieldDescriptor descriptor = FieldDescriptor.build(i % 7 == 0, 48 + i);
             builder.appendField(descriptor);
         }
         MetadataFragment metadataFragment = builder.build();
@@ -112,7 +116,6 @@ public class MetadataFragmentTest {
         assertEquals(metadataFragment.getKeyCount(), metadataFragmentClone.getKeyCount());
         for (int i = 0; i < 85; i++) {
             assertEquals(metadataFragment.getDescriptor(i).getTritSize(), metadataFragmentClone.getDescriptor(i).getTritSize());
-            assertEquals(metadataFragment.getDescriptor(i).getLabel(), metadataFragmentClone.getDescriptor(i).getLabel());
             assertEquals(metadataFragment.getDescriptor(i).isList(), metadataFragmentClone.getDescriptor(i).isList());
         }
     }
@@ -155,10 +158,5 @@ public class MetadataFragmentTest {
         assertEquals(243,descriptor3.getTritSize().intValue());
         assertEquals(27,descriptor4.getTritSize().intValue());
 
-        assertEquals("isTest",descriptor0.getAsciiLabel());
-        assertEquals("myLabel",descriptor1.getAsciiLabel());
-        assertEquals("aReference",descriptor2.getAsciiLabel());
-        assertEquals("aReferenceList",descriptor3.getAsciiLabel());
-        assertEquals("myInteger",descriptor4.getAsciiLabel());
     }
 }

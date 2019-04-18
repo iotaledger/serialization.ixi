@@ -124,7 +124,7 @@ public class MetadataFragment extends BundleFragment {
             for(Field field:fields){
                 if(field.getAnnotation(SerializableField.class)!=null){
                     SerializableField annotation = field.getAnnotation(SerializableField.class);
-                    FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(field.getType().isAssignableFrom(List.class),annotation.tritLength(), annotation.label());
+                    FieldDescriptor descriptor = FieldDescriptor.fromField(field);
                     fieldDescriptors.put(annotation.index(),descriptor);
                     fieldCount++;
                 }
