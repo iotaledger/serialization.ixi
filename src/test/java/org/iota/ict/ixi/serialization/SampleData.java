@@ -6,6 +6,7 @@ import org.iota.ict.ixi.serialization.model.MetadataFragment;
 import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
+import org.iota.ict.ixi.serialization.util.TritsConverter;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigDecimal;
@@ -38,7 +39,7 @@ public class SampleData {
 
         simpleDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(classWithOneAsciiField)
-                .setValue(0, Trytes.fromAscii("hello"))
+                .setValue(0, "hello", TritsConverter.ASCII)
                 .build();
 
         sample = buildSampleClassInstance();

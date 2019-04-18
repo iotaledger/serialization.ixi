@@ -24,7 +24,7 @@ public class StructuredDataFragmentTest {
         MetadataFragment metadataFragment = SampleData.classWithOneAsciiField;
         StructuredDataFragment structuredDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(metadataFragment)
-                .setValue(0, Trytes.fromAscii("hello"))
+                .setValue(0, "hello", TritsConverter.ASCII)
                 .build();
         assertEquals(metadataFragment.hash(),structuredDataFragment.getHeadTransaction().extraDataDigest(), "ExtraDataDigest must metadata hash");
         assertEquals("hello", asciiFromTrits(structuredDataFragment.getValue(0)));
@@ -37,8 +37,8 @@ public class StructuredDataFragmentTest {
         MetadataFragment metadataFragment = SampleData.classWith2AsciiFields;
         StructuredDataFragment structuredDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(metadataFragment)
-                .setValue(0, Trytes.fromAscii("hello"))
-                .setValue(1, Trytes.fromAscii("hi"))
+                .setValue(0, "hello", TritsConverter.ASCII)
+                .setValue(1, "hi", TritsConverter.ASCII)
                 .build();
         assertEquals(metadataFragment.hash(),structuredDataFragment.getHeadTransaction().extraDataDigest(), "ExtraDataDigest must metadata hash");
         assertEquals("hello", asciiFromTrits(structuredDataFragment.getValue(0)));
@@ -50,9 +50,9 @@ public class StructuredDataFragmentTest {
         MetadataFragment metadataFragment = SampleData.classWith3Fields;
         StructuredDataFragment structuredDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(metadataFragment)
-                .setValue(0, Trytes.fromAscii("my name"))
-                .setValue(1, Trytes.fromNumber(BigInteger.valueOf(47),2))
-                .setBooleanValue(2, true)
+                .setValue(0, Trytes.fromAscii("my name"), TritsConverter.TRYTES)
+                .setValue(1, Trytes.fromNumber(BigInteger.valueOf(47),2), TritsConverter.TRYTES)
+                .setValue(2, true, TritsConverter.BOOLEAN)
                 .build();
 
         assertEquals(metadataFragment.hash(),structuredDataFragment.getHeadTransaction().extraDataDigest(), "ExtraDataDigest must metadata hash");
@@ -68,8 +68,8 @@ public class StructuredDataFragmentTest {
         MetadataFragment metadataFragment = SampleData.classWithAsciiAndList;
         StructuredDataFragment structuredDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(metadataFragment)
-                .setValue(0, Trytes.fromAscii("Qubic"))
-                .setValues(1, Trytes.fromAscii("Qupla"), Trytes.fromAscii("Abra"), Trytes.fromAscii("Java"))
+                .setValue(0, "Qubic", TritsConverter.ASCII)
+                .setValues(1, TritsConverter.ASCII, "Qupla","Abra", "Java")
                 .build();
 
         assertEquals(metadataFragment.hash(),structuredDataFragment.getHeadTransaction().extraDataDigest(), "ExtraDataDigest must metadata hash");
@@ -93,14 +93,14 @@ public class StructuredDataFragmentTest {
         int SIZE = 56;
         String[] manyValues = new String[SIZE];
         for(int i=0;i<SIZE;i++){
-            manyValues[i]=Trytes.fromAscii("language_"+i);
+            manyValues[i]="language_"+i;
         }
 
         MetadataFragment metadataFragment = SampleData.classWithAsciiAndList;
         StructuredDataFragment structuredDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(metadataFragment)
                 .setValue(0, Trytes.fromAscii("Qubic"))
-                .setValues(1, manyValues)
+                .setValues(1, TritsConverter.ASCII, manyValues)
                 .build();
 
         assertEquals(metadataFragment.hash(),structuredDataFragment.getHeadTransaction().extraDataDigest(), "ExtraDataDigest must metadata hash");
@@ -118,7 +118,7 @@ public class StructuredDataFragmentTest {
         StructuredDataFragment structuredDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(metadataFragment)
                 .setValue(1, Trytes.fromAscii("Qubic"))
-                .setValues(0, Trytes.fromAscii("Qupla"), Trytes.fromAscii("Abra"), Trytes.fromAscii("Java"))
+                .setValues(0, TritsConverter.ASCII, "Qupla","Abra", "Java")
                 .build();
 
         assertEquals(metadataFragment.hash(),structuredDataFragment.getHeadTransaction().extraDataDigest(), "ExtraDataDigest must metadata hash");

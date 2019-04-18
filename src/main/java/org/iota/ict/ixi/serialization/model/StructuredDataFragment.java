@@ -226,11 +226,6 @@ public class StructuredDataFragment extends BundleFragment {
             return this;
         }
 
-        public Builder setBooleanValue(int index, boolean b) {
-            values.put(index, new SingleValueHolder(b ? new byte[]{1} : new byte[]{0}));
-            return this;
-        }
-
         public Builder setTritsValue(int index, byte[] trits) {
             if (trits == null) {
                 values.remove(index);
@@ -240,8 +235,39 @@ public class StructuredDataFragment extends BundleFragment {
             return this;
         }
 
+        public Builder setTritsValues(int i, List<byte[]> tritsList) {
+            if(tritsList==null || tritsList.size()==0) {
+                values.remove(i);
+                return this;
+            }
+            MultipleValueHolder holder = new MultipleValueHolder();
+            int elementSize = metadata.getDescriptor(i).getTritSize().intValue();
+            for (byte[] item : tritsList) {
+                byte[] b = new byte[elementSize];
+                System.arraycopy(item, 0, b, 0, item.length);
+                holder.values.add(b);
+            }
+            values.put(i, holder);
+            return this;
+        }
+
+        public <T> Builder setValue(int index, T data, TritsConverter<T> converter){
+            byte[] trits = converter.toTrits(data, metadata.getDescriptor(index).getTritSize().intValue());
+            return setTritsValue(index, trits);
+        }
+
+        public <T> Builder setValues(int index, TritsConverter<T> converter, T... items  ){
+            List<byte[]> trits = new ArrayList<>(items.length);
+            int itemSize = metadata.getDescriptor(index).getTritSize().intValue();
+            for(T item:items){
+                trits.add(converter.toTrits(item, itemSize));
+            }
+            return setTritsValues(index, trits);
+        }
+
+
         public Builder fromInstance(Object data){
-            MetadataFragment metadataFragment = new MetadataFragment.Builder().fromClass(data.getClass()).build();
+            MetadataFragment metadataFragment = MetadataFragment.Builder.fromClass(data.getClass()).build();
             setMetadata(metadataFragment);
             Map<Integer, FieldDescriptor> fieldDescriptors = new HashMap<>();
             Map<Integer, Field> javaFields = new HashMap<>();
@@ -391,35 +417,6 @@ public class StructuredDataFragment extends BundleFragment {
 
         private void setMetadataHash() {
             getHead().extraDataDigest = metadata.hash();
-        }
-
-        public Builder setValues(int i, String... trytes) {
-            MultipleValueHolder holder = new MultipleValueHolder();
-            int elementSize = metadata.getDescriptor(i).getTritSize().intValue();
-            for (String val : trytes) {
-                byte[] b = new byte[elementSize];
-                byte[] src = Trytes.toTrits(val);
-                System.arraycopy(src, 0, b, 0, src.length);
-                holder.values.add(b);
-            }
-            values.put(i, holder);
-            return this;
-        }
-
-        public Builder setTritsValues(int i, List<byte[]> tritsList) {
-            if(tritsList==null || tritsList.size()==0) {
-                values.remove(i);
-                return this;
-            }
-            MultipleValueHolder holder = new MultipleValueHolder();
-            int elementSize = metadata.getDescriptor(i).getTritSize().intValue();
-            for (byte[] item : tritsList) {
-                byte[] b = new byte[elementSize];
-                System.arraycopy(item, 0, b, 0, item.length);
-                holder.values.add(b);
-            }
-            values.put(i, holder);
-            return this;
         }
 
         private class ValueHolder {
