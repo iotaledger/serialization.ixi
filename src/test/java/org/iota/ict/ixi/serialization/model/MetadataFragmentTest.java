@@ -100,6 +100,23 @@ public class MetadataFragmentTest {
     }
 
     @Test
+    public void bigMetadataFragmentTest() {
+        MetadataFragment.Builder builder = new MetadataFragment.Builder();
+        for (int i = 0; i < 85; i++) {
+            FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(i % 7 == 0, 48 + i, "a simple label" + i);
+            builder.appendField(descriptor);
+        }
+        MetadataFragment metadataFragment = builder.build();
+        Transaction head = metadataFragment.getHeadTransaction();
+        MetadataFragment metadataFragmentClone = new MetadataFragment.Builder().fromTransaction(head);
+        assertEquals(metadataFragment.getKeyCount(), metadataFragmentClone.getKeyCount());
+        for (int i = 0; i < 85; i++) {
+            assertEquals(metadataFragment.getDescriptor(i).getTritSize(), metadataFragmentClone.getDescriptor(i).getTritSize());
+            assertEquals(metadataFragment.getDescriptor(i).getLabel(), metadataFragmentClone.getDescriptor(i).getLabel());
+            assertEquals(metadataFragment.getDescriptor(i).isList(), metadataFragmentClone.getDescriptor(i).isList());
+        }
+    }
+    @Test
     public void invalidInputCheck(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
         Exception exception = assertThrows(IllegalStateException.class, () ->

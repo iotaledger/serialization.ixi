@@ -98,8 +98,8 @@ public class FieldDescriptor {
         if(size==null){
             throw new IllegalArgumentException("size cannot be null");
         }
-        if(size.longValue()==0){
-            throw new IllegalArgumentException("size cannot be 0");
+        if(size.longValue()<=0){
+            throw new IllegalArgumentException("size cannot be < 1");
         }
     }
 

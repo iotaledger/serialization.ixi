@@ -78,7 +78,7 @@ public class StructuredDataFragment extends BundleFragment {
         if (descriptor == null) {
             throw new IndexOutOfBoundsException(i + " is not a valid field index for this fragment.");
         }
-        long offset = offsets.get(i).longValue();
+        long offset = offsets.get(i);
         int length = (int) (i + 1 == metadataFragment.getKeyCount() ? (totalSize - offset) : offsets.get(i + 1) - offset);
         Transaction t = getHeadTransaction();
         while (offset > Transaction.Field.SIGNATURE_FRAGMENTS.tritLength) {
@@ -165,17 +165,15 @@ public class StructuredDataFragment extends BundleFragment {
                 }
             }
             return data;
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
 
         return null;
     }
 
-    private List extractJavaList(List<byte[]> values, TritsConverter converter){
-        List list = new ArrayList(values.size());
+    private <T> List<T> extractJavaList(List<byte[]> values, TritsConverter<T> converter){
+        List<T> list = new ArrayList<T>(values.size());
         for(byte[] value:values){
             list.add(converter.fromTrits(value));
         }
@@ -296,7 +294,6 @@ public class StructuredDataFragment extends BundleFragment {
                     javaValue = javaField.get(data);
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
-                    javaValue = null;
                 }
                 Class converterClass = javaField.getAnnotation(SerializableField.class).converter();
                 TritsConverter converter = TritsConverter.Factory.get(converterClass);
@@ -383,7 +380,7 @@ public class StructuredDataFragment extends BundleFragment {
             }
         }
 
-        private List<Long> computeOffsets() {
+        private void computeOffsets() {
             long currentOffset = 0;
             for (int i = 0; i < metadata.getKeyCount(); i++) {
                 offsets.add(currentOffset);
@@ -401,7 +398,6 @@ public class StructuredDataFragment extends BundleFragment {
                 }
             }
             totalSize = BigInteger.valueOf(currentOffset);
-            return offsets;
         }
 
         private void setTags() {

@@ -146,7 +146,9 @@ public class SerializationModuleIT {
     @Test
     public void loadFragmentDataTest() throws UnknownMetadataException {
         String dataHeadHash = createAndSubmitBundle();
-        serializationModule.registerMetadata(MetadataFragment.Builder.fromClass(SampleSerializableClass.class).build());
+        MetadataFragment.Builder builder = MetadataFragment.Builder.fromClass(SampleSerializableClass.class);
+        MetadataFragment metadataFragment = serializationModule.buildMetadataFragment(builder);
+        serializationModule.registerMetadata(metadataFragment);
         StructuredDataFragment dataFragment = serializationModule.loadFragmentData(dataHeadHash);
         assertNotNull(dataFragment);
         assertTrue(serializationModule.getTritsForKeyAtIndex(dataFragment,0)[0]==1);

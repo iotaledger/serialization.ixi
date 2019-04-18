@@ -22,6 +22,16 @@ public class FieldDescriptorTest {
     }
 
     @Test
+    public void fieldSizeMustStrictlyPositive(){
+        assertThrows(IllegalArgumentException.class,
+                () -> FieldDescriptor.withAsciiLabel(false,BigInteger.ZERO,null));
+        assertThrows(IllegalArgumentException.class,
+                () -> FieldDescriptor.withAsciiLabel(false,null,null));
+        assertThrows(IllegalArgumentException.class,
+                () -> FieldDescriptor.withAsciiLabel(false,-1,null));
+    }
+
+    @Test
     public void deserializerTest() {
         String src = Trytes.padRight("AA", FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
 

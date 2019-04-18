@@ -107,9 +107,8 @@ public class SerializationModule extends IxiModule {
 
     /**
      * Pull structured data from the tangle
-     * @param transactionHash
+     * @param transactionHash structuredDtaFragment head transaction
      * @param clazz the serializable class (i.e. class annotated with @SerializableField) corresponding to the target transactionHash
-     * @param <T>
      * @return the deserialized data or null when transaction with transactionHash is not found or is not data-fragment-head transaction.
      */
     public <T> T loadFragmentData(String transactionHash, Class<T> clazz) {
@@ -219,7 +218,7 @@ public class SerializationModule extends IxiModule {
     /**
      * Build a StructuredDataFragment.Prepared for data.
      * The StructuredDataFragment.Prepared can be used later to insert the dataFragment in Bundle.
-     * @param data
+     * @param data data to serialize
      * @return a preparedDataFragment.
      */
     public StructuredDataFragment.Prepared prepare(Object data) {
@@ -307,14 +306,20 @@ public class SerializationModule extends IxiModule {
             Transaction t = fragmentHead;
             while(t!=null && !MetadataFragment.isTail(t)){
                 t = t.getTrunk();
+                if(!bundle.getTransactions().contains(t)){
+                    return false;
+                }
             }
-            return t!=null && MetadataFragment.isTail(t);
+            return MetadataFragment.isTail(t);
         }
 
         private boolean foundStructuredDataFragmentTail(Bundle bundle, Transaction fragmentHead){
             Transaction t = fragmentHead;
             while(t!=null && !StructuredDataFragment.isTail(t)){
                 t = t.getTrunk();
+                if(!bundle.getTransactions().contains(t)){
+                    return false;
+                }
             }
             return t!=null && StructuredDataFragment.isTail(t);
         }

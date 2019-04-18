@@ -1,6 +1,5 @@
 package org.iota.ict.ixi.serialization.util;
 
-import org.iota.ict.ixi.serialization.SerializationModule;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
@@ -9,11 +8,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 
-import static org.iota.ict.utils.Trytes.TRITS_BY_TRYTE;
-import static org.iota.ict.utils.Trytes.TRYTES;
-
+@SuppressWarnings("WeakerAccess")
 public class Utils {
-
 
     public static final BigInteger BIG_3 = BigInteger.valueOf(3);
     public static final BigInteger BIG_2 = BigInteger.valueOf(2);
