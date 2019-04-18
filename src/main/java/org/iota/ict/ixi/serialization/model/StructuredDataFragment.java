@@ -7,8 +7,6 @@ import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 

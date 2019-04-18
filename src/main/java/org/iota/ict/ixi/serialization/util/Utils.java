@@ -57,10 +57,6 @@ public class Utils {
         return Trytes.toNumber(Trytes.fromTrits(b));
     }
 
-    public static byte[] toTrits(char tryte) {
-        return TRITS_BY_TRYTE[TRYTES.indexOf(tryte)];
-    }
-
     public static byte[] readNtritsFromBundleFragment(int n, Transaction t, int startOffset){
         int availableTritsInCurrentTransaction = Transaction.Field.SIGNATURE_FRAGMENTS.tritLength - startOffset;
         byte[] trits = new byte[n];

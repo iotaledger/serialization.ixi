@@ -50,7 +50,7 @@ public class MetadataFragment extends BundleFragment {
             throw new IndexOutOfBoundsException(i+" is an invalid key index");
         }
         Transaction t = getHeadTransaction();
-        long offset = offsetInTrytes(i);//descriptorsOffsets.get(i);
+        long offset = offsetInTrytes(i);
         while(offset>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
             offset = offset - Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength;
             t = t.getTrunk();

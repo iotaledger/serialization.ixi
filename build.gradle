@@ -31,16 +31,19 @@ configurations {
 
 dependencies {
     compileOnly ('com.github.iotaledger:ict:0.6') {
+        //waiting ict #73 before removing
         exclude group: 'org.slf4j', module: 'slf4j-nop'
     }
     runtimeClasspath ('com.github.iotaledger:ict:0.6') {
+        //waiting ict #73 before removing
         exclude group: 'org.slf4j', module: 'slf4j-nop'
     }
     testCompileOnly ('com.github.iotaledger:ict:0.6') {
+        //waiting ict #73 before removing
         exclude group: 'org.slf4j', module: 'slf4j-nop'
     }
     runtimeClasspath group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
-    testCompileClasspath group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
+    testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.4.1'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.21.0'
 }

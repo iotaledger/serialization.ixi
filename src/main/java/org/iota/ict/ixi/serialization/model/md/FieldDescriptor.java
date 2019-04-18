@@ -22,8 +22,6 @@ public class FieldDescriptor {
     public static final int FIELD_DESCRIPTOR_TRIT_LENGTH = FIELD_TYPE_TRIT_LENGTH + FIELD_SIZE_TRIT_LENGTH + FIELD_LABEL_TRIT_LENGTH;
     public static final int FIELD_DESCRIPTOR_TRYTE_LENGTH = FIELD_DESCRIPTOR_TRIT_LENGTH /3;
 
-    private static final BigInteger BIG_INT_3 = new BigInteger("3");
-
     private boolean isList;
     private BigInteger tritSize;
     private String label;
@@ -46,7 +44,7 @@ public class FieldDescriptor {
     }
 
     public static FieldDescriptor withAsciiLabel(boolean isList, BigInteger tritSize, String label) {
-        checkInputs(isList, tritSize);
+        checkInputs(tritSize);
         return new FieldDescriptor(
                 isList,
                 tritSize,
@@ -54,7 +52,7 @@ public class FieldDescriptor {
     }
 
     public static FieldDescriptor withTrytesLabel(boolean isList, BigInteger tritSize, String label){
-        checkInputs(isList, tritSize);
+        checkInputs(tritSize);
         return new FieldDescriptor(isList, tritSize, label);
     }
 
@@ -86,10 +84,6 @@ public class FieldDescriptor {
         return trytes;
     }
 
-    public int getTryteSize() {
-        return tritSize.divide(BIG_INT_3).intValue();
-    }
-
     private FieldDescriptor(boolean isList, BigInteger tritSize, String labelAsTrytes){
         this.isList = isList;
         this.tritSize = tritSize;
@@ -100,7 +94,7 @@ public class FieldDescriptor {
                 labelAsTrytes;
     }
 
-    private static void checkInputs(boolean isList, BigInteger size) {
+    private static void checkInputs(BigInteger size) {
         if(size==null){
             throw new IllegalArgumentException("size cannot be null");
         }
@@ -117,23 +111,4 @@ public class FieldDescriptor {
         return !isList;
     }
 
-//    public boolean isInteger() {
-//        return type.isInteger();
-//    }
-//
-//    public boolean isAscii() {
-//        return type.isAscii();
-//    }
-//
-//    public boolean isHash() {
-//        return type.isHash();
-//    }
-//
-//    public boolean isBoolean() {
-//        return type.isBoolean();
-//    }
-//
-//    public boolean isDecimal() {
-//        return type.isDecimal();
-//    }
 }

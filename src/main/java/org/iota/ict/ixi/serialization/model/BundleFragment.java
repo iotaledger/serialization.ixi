@@ -61,13 +61,6 @@ public abstract class BundleFragment {
         private String referencedBranch;
 
         abstract public T build();
-//
-//        public void setIsHeadFragment(boolean isHeadFragment){
-//            this.isHeadFragment = isHeadFragment;
-//        }
-//        public void setIsTailFragment(boolean isTailFragment){
-//            this.isTailFragment = isTailFragment;
-//        }
 
         public Builder<T> setReferencedBranch(String referencedBranch) {
             this.referencedBranch = referencedBranch;
