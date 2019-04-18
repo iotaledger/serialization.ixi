@@ -23,18 +23,17 @@ The 9 first trits of the signatureMessageFragment of the head-transaction are re
 The remaining of the signatureMessageFragment of a MetadataFragment contains a non-empty sequence of *field descriptor*.
 
 
-A *field descriptor* is composed of 3 components of fixed size:
+A *field descriptor* is composed of 2 components of fixed size:
 
-- The <u>type</u> component (3 trits) indicates the cardinality  
+- The <u>cardinality</u> component (3 trits) indicates the cardinality  
     - the first trit is called the cardinality trit. 
         - A cardinality trit 1 indicates that the field is a "single value" 
         - A cardinality trit -1 indicates that the field is a "multiple value" (i.e. a list of values)
         - A cardinality trit 0 is illegal 
-    - the 2 following are not used
+    - the 2 following trits are not used and must be 0
 - The <u>size</u> component (12 trits) indicates either :
     - the size of the field in trits (when cardinality is "single value")
     - the size of one element of the list (when cardinality is "multiple values")
-- The <u>label</u> component (144 trits) is a human readable description  (up 24 chars, ascii encoded) of the field.
 
 
 ![descriptor](docs/descriptor.png)
