@@ -10,6 +10,5 @@ import java.lang.annotation.Target;
 public @interface SerializableField {
     int index();
     long tritLength();
-    String label() default "";
     Class<? extends TritsConverter> converter();
 }
