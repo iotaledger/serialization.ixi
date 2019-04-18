@@ -25,28 +25,17 @@ The remaining of the signatureMessageFragment of a MetadataFragment contains a n
 
 A *field descriptor* is composed of 3 components of fixed size:
 
-- The <u>type</u> component (6 trits) indicates the cardinality and optionally the way to interpret the value  
+- The <u>type</u> component (3 trits) indicates the cardinality  
     - the first trit is called the cardinality trit. 
         - A cardinality trit 1 indicates that the field is a "single value" 
         - A cardinality trit -1 indicates that the field is a "multiple value" (i.e. a list of values)
         - A cardinality trit 0 is illegal 
-    - the 5 following trits indicates how to interpret the (mutiple-)value(s).
-        - 0,0,0,0,0 indicates an unspecified field (i.e. just 'trits')
-        - 1,0,0,0,0 denotes an Integer 
-        - 0,1,0,0,0 denotes an Boolean 
-        - 0,0,1,0,0 denotes an Float 
-        - 0,0,0,1,0 denotes a TransactionHash 
-        - 0,0,0,0,1 denotes an encode ascii value 
-        - (other trit sequences are 'reserved' for future use)
+    - the 2 following are not used
 - The <u>size</u> component (12 trits) indicates either :
     - the size of the field in trits (when cardinality is "single value")
     - the size of one element of the list (when cardinality is "multiple values")
-    Note that a Boolean field should have a size of 1 and a TransactionHash field should have a size of 243.
 - The <u>label</u> component (144 trits) is a human readable description  (up 24 chars, ascii encoded) of the field.
 
-Decimal type: a decimal number is composed of two part, the mantissa and the exponent. 
-If the length of the decimal field is N, the exponent is encoded in the last N/3 trits, 
-the other (N-N/3) first trits encode the mantissa.
 
 ![descriptor](docs/descriptor.png)
 

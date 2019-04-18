@@ -8,6 +8,7 @@ import org.iota.ict.ixi.serialization.model.AllTypesSampleData;
 import org.iota.ict.ixi.serialization.model.MetadataFragment;
 import org.iota.ict.ixi.serialization.model.SampleSerializableClass;
 import org.iota.ict.ixi.serialization.model.StructuredDataFragment;
+import org.iota.ict.ixi.serialization.util.TritsConverter;
 import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.bundle.BundleBuilder;
@@ -55,7 +56,7 @@ public class SerializationModuleIT {
                 dataFragment -> {
                     received.set(true);
                     try {
-                        assertEquals(dataFragment.getAsciiValue(0),"hello");
+                        assertEquals(dataFragment.getValue(0, TritsConverter.ASCII),"hello");
                     } catch (UnknownMetadataException e) {
                         fail("Metadata should be known");
                     }

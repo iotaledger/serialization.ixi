@@ -12,8 +12,31 @@ public interface TritsConverter<T> {
 
     byte[] toTrits(T value, int length);
 
+    public static final TritsConverter<String> ASCII = new AsciiConverter();
+    public static final TritsConverter<String> TRYTES = new TrytesConverter();
+    public static final TritsConverter<Integer> INTEGER = new IntegerConverter();
+    public static final TritsConverter<Long> LONG = new LongConverter();
+    public static final TritsConverter<BigInteger> BIG_INTEGER = new BigIntegerConverter();
+    public static final TritsConverter<Float> FLOAT = new FloatConverter();
+    public static final TritsConverter<Double> DOUBLE = new DoubleConverter();
+    public static final TritsConverter<BigDecimal> BIG_DECIMAL = new BigDecimalConverter();
+    public static final TritsConverter<Boolean> BOOLEAN = new BooleanConverter();
+
     public static class Factory {
+
         private static HashMap<Class, TritsConverter> cache = new HashMap<>();
+
+        static {
+            cache.put(ASCII.getClass(),ASCII);
+            cache.put(TRYTES.getClass(),TRYTES);
+            cache.put(INTEGER.getClass(),INTEGER);
+            cache.put(LONG.getClass(),LONG);
+            cache.put(BIG_INTEGER.getClass(),BIG_INTEGER);
+            cache.put(FLOAT.getClass(),FLOAT);
+            cache.put(DOUBLE.getClass(),DOUBLE);
+            cache.put(BIG_DECIMAL.getClass(),BIG_DECIMAL);
+            cache.put(BOOLEAN.getClass(),BOOLEAN);
+        }
 
         public static TritsConverter get(Class clazz){
             TritsConverter ret = cache.get(clazz);
@@ -30,7 +53,7 @@ public interface TritsConverter<T> {
             return ret;
         }
     }
-    public static class TRYTES implements TritsConverter<String> {
+    public static class TrytesConverter implements TritsConverter<String> {
         @Override
         public String fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -48,7 +71,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class ASCII implements TritsConverter<String> {
+    public static class AsciiConverter implements TritsConverter<String> {
         @Override
         public String fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -66,7 +89,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class INTEGER implements TritsConverter<Integer> {
+    public static class IntegerConverter implements TritsConverter<Integer> {
         @Override
         public Integer fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -83,7 +106,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class LONG implements TritsConverter<Long> {
+    public static class LongConverter implements TritsConverter<Long> {
         @Override
         public Long fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -100,7 +123,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class BIG_INTEGER implements TritsConverter<BigInteger> {
+    public static class BigIntegerConverter implements TritsConverter<BigInteger> {
         @Override
         public BigInteger fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -117,7 +140,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class FLOAT implements TritsConverter<Float> {
+    public static class FloatConverter implements TritsConverter<Float> {
         @Override
         public Float fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -134,7 +157,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class DOUBLE implements TritsConverter<Double> {
+    public static class DoubleConverter implements TritsConverter<Double> {
         @Override
         public Double fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -151,7 +174,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class BIG_DECIMAL implements TritsConverter<BigDecimal> {
+    public static class BigDecimalConverter implements TritsConverter<BigDecimal> {
         @Override
         public BigDecimal fromTrits(byte[] trits) {
             if(trits==null) return null;
@@ -168,7 +191,7 @@ public interface TritsConverter<T> {
         }
     };
 
-    public static class BOOLEAN implements TritsConverter<Boolean> {
+    public static class BooleanConverter implements TritsConverter<Boolean> {
         @Override
         public Boolean fromTrits(byte[] trits) {
             if(trits==null) return null;

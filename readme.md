@@ -55,25 +55,23 @@ Start by defining a data class with required annotations :
 
 ```
 public class Sample {
-
-    @SerializableField(index=0, tritLength = 1, label = "isTest", fieldType = FieldType.BOOLEAN)
+    @SerializableField(index = 0, tritLength = 1, label = "isTest", converter = TritsConverter.BOOLEAN.class)
     public boolean isTest;
-    
-    @SerializableField(index=1, tritLength = 99, label = "myLabel", fieldType = FieldType.ASCII)
-    public boolean myLabel;
-    
-    @SerializableField(index=2, tritLength = 243, label = "aReference", fieldType = FieldType.HASH)
+
+    @SerializableField(index = 1, tritLength = 99, label = "myLabel", converter = TritsConverter.ASCII.class)
+    public String myLabel;
+
+    @SerializableField(index = 2, tritLength = 243, label = "aReference", converter = TritsConverter.TRYTES.class)
     public String aReferenceHash;
-    
-    @SerializableField(index=3, tritLength = 243, label = "aReferenceList", fieldType = FieldType.HASH_LIST)
+
+    @SerializableField(index = 3, tritLength = 243, label = "aReferenceList", converter = TritsConverter.TRYTES.class)
     public List<String> listOfReferences;
 }
 ```
 Notes :
  1. each field have an index. All indexes MUST be different and be continuous. (i.e. defining a field at index 0 ,1 and 3 is illegal because index 2 is missing)
  2. serializable fields are public (to simplify implementation)
- 3. a set of field types are predefined : Integer, Decimal, Ascii, Boolean, Hash(243 trits), and their *list* variation: 
- IntegerList, DecimalList, AsciiList, BooleanList and HashList
+ 3. a converter must be specified for each field. The converter instruct serialization.ixi on how to convert raw trits to their deserialize form.
  
 ##### Publish/serialize
 
@@ -155,9 +153,9 @@ Building a MetadataFragment consist essentially in appending FieldDescriptor to 
 A fieldDescriptor describe a serialized field and match exactly the `@SerializableField` annotation presented earlier.
 
 ```
-FieldDescriptor name = FieldDescriptor.withAsciiLabel(FieldType.TYPE_ASCII,243,"name");
-FieldDescriptor age = FieldDescriptor.withAsciiLabel(FieldType.TYPE_INTEGER,7,"age");
-FieldDescriptor isMale = FieldDescriptor.withAsciiLabel(FieldType.TYPE_BOOLEAN,1,"isMale");
+FieldDescriptor name = FieldDescriptor.withAsciiLabel(false, 243, "name");
+FieldDescriptor age = FieldDescriptor.withAsciiLabel(false, 7, "age");
+FieldDescriptor isMale = FieldDescriptor.withAsciiLabel(false, 1, "isMale");
 MetadataFragment metadatafragment =  new MetadataFragment.Builder()
                                             .appendField(name)
                                             .appendField(age)
@@ -209,15 +207,15 @@ serializationModule.registerDataListener(matcher, wrappedListener);
 
 ##### Read a StructuredDataFragment
 
-Fields of a StructuredDataFragment are identified by index and different getter are available
-to read a typed value, or a list of values.
-There is also a generic getter to read any field as trits (encoded in byte[])
+Fields of a StructuredDataFragment are identified by index.
+A generic getter to read value as trits is available.
+It also possible to deserialize the trits by passing a converter.
 
 ```
-String ascii = structuredDataFragment.getAsciiValue(0);
-Integer age = structuredDataFragment.getIntegerValue(1);
-boolean isMale = structuredDataFragment.getBooleanValue(2);
-List<byte[]> values = structuredDataFragment.getListValues(3);
+bytes[] asciiTrits = structuredDataFragment.getValue(0);
+String ascii = structuredDataFragment.getValue(0, TritsConverter.ASCII);
+List<byte[]> values = structuredDataFragment.getListValues(1);
+List<Integer> values = structuredDataFragment.getListValues(1, TritsConverter.INTEGER);
 ```
 
 ### Pull data API
@@ -231,4 +229,3 @@ or
 ```
 StructuredData myPulledData = serializationModule.loadData(transactionHash, metadataFragment);
 ```
-This is useful when receiving a dataFragment where other fragments are referenced in a HASH (or HASH_LIST) field.

@@ -92,30 +92,9 @@ public class StructuredDataFragment extends BundleFragment {
         return ret;
     }
 
-    public Boolean getBooleanValue(int i) throws UnknownMetadataException {
-        byte[] value = getValue(i);
-        return value == null ? null : value[0] == 1;
-    }
-
-    public BigInteger getIntegerValue(int i) throws UnknownMetadataException {
-        byte[] value = getValue(i);
-        return value == null ? null : Utils.integerFromTrits(value);
-    }
-
-    public BigDecimal getDecimalValue(int i) throws UnknownMetadataException {
-        byte[] value = getValue(i);
-        return value == null ? null : Utils.decimalFromTrits(value);
-    }
-
-    public String getAsciiValue(int i) throws UnknownMetadataException {
-        byte[] value = getValue(i);
-        return value == null ? "" : Utils.asciiFromTrits(value);
-    }
-
-    public String getTrytesValue(int i) throws UnknownMetadataException {
-        byte[] value = getValue(i);
-        if (value.length % 3 != 0) return null;
-        return value == null ? null : Trytes.fromTrits(value);
+    public<T> T getValue(int i, TritsConverter<T> converter) throws UnknownMetadataException {
+        byte[] bytes = getValue(i);
+        return converter.fromTrits(bytes);
     }
 
     public List<byte[]> getListValue(int i) throws UnknownMetadataException {
@@ -138,20 +117,14 @@ public class StructuredDataFragment extends BundleFragment {
         return ret;
     }
 
-    public List<String> getTryteList(int index) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(index);
-        if(values==null || values.size()==0){
-            return Collections.EMPTY_LIST;
-        }
-        ArrayList<String> ret = new ArrayList<>();
-        for(int i=0;i<values.size();i++){
-            ret.add(Trytes.fromTrits(values.get(i)));
+    public <T> List<T> getListValue(int i, TritsConverter<T> converter) throws UnknownMetadataException {
+        List<byte[]> bytesList = getListValue(i);
+        ArrayList ret = new ArrayList(bytesList.size());
+        for(byte[] bytes:bytesList){
+            ret.add(converter.fromTrits(bytes));
         }
         return ret;
     }
-
-
-
 
     public <T> T deserializeToClass(Class<T> clazz) throws UnknownMetadataException {
         MetadataFragment metadataFragment = MetadataFragment.Builder.fromClass(clazz).build();
@@ -203,90 +176,12 @@ public class StructuredDataFragment extends BundleFragment {
         return null;
     }
 
-    private static boolean isIntegerType(Class javaFieldType){
-        return javaFieldType.equals(Integer.class) || javaFieldType.equals(Long.class) || javaFieldType.equals(BigInteger.class) ||javaFieldType.equals(Integer.TYPE) ||javaFieldType.equals(Long.TYPE);
-    }
-    private static boolean isStringType(Class javaFieldType){
-        return javaFieldType.equals(String.class);
-    }
-    private static boolean isBooleanType(Class javaFieldType){
-        return javaFieldType.equals(Boolean.class) || javaFieldType.equals(Boolean.TYPE);
-    }
-    private static boolean isDecimalType(Class javaFieldType){
-        return javaFieldType.equals(Float.class) || javaFieldType.equals(Double.class) || javaFieldType.equals(BigDecimal.class) ||javaFieldType.equals(Float.TYPE) ||javaFieldType.equals(Double.TYPE);
-    }
-
     private List extractJavaList(List<byte[]> values, TritsConverter converter){
         List list = new ArrayList(values.size());
         for(byte[] value:values){
             list.add(converter.fromTrits(value));
         }
         return list;
-    }
-
-    public List<Boolean> getBooleanList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<Boolean> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:values.get(j)[0]==1);
-        }
-        return ret;
-    }
-    public List<String> getAsciiList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<String> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:Trytes.toAscii(Trytes.fromTrits(values.get(j))));
-        }
-        return ret;
-    }
-    public List<Integer> getIntegerList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<Integer> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:Utils.integerFromTrits(values.get(j)).intValue());
-        }
-        return ret;
-    }
-    public List<Long> getLongList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<Long> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:Utils.integerFromTrits(values.get(j)).longValue());
-        }
-        return ret;
-    }
-    public List<BigInteger> getBigIntegerList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<BigInteger> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:Utils.integerFromTrits(values.get(j)));
-        }
-        return ret;
-    }
-    public List<Float> getFloatList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<Float> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:Utils.decimalFromTrits(values.get(j)).floatValue());
-        }
-        return ret;
-    }
-    public List<Double> getDoubleList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<Double> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:Utils.decimalFromTrits(values.get(j)).doubleValue());
-        }
-        return ret;
-    }
-    public List<BigDecimal> getBigDecimalList(int i) throws UnknownMetadataException {
-        List<byte[]> values = getListValue(i);
-        List<BigDecimal> ret = new ArrayList<>(values.size());
-        for(int j=0;j<values.size();j++){
-            ret.add(j,values.get(j)==null?null:Utils.decimalFromTrits(values.get(j)));
-        }
-        return ret;
     }
 
     public static class Prepared {
