@@ -1,7 +1,6 @@
 package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
-import org.iota.ict.ixi.serialization.model.md.FieldType;
 import org.iota.ict.ixi.serialization.util.SerializableField;
 import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.transaction.Transaction;
@@ -125,7 +124,7 @@ public class MetadataFragment extends BundleFragment {
             for(Field field:fields){
                 if(field.getAnnotation(SerializableField.class)!=null){
                     SerializableField annotation = field.getAnnotation(SerializableField.class);
-                    FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes(annotation.fieldType()),annotation.tritLength(), annotation.label());
+                    FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(field.getType().isAssignableFrom(List.class),annotation.tritLength(), annotation.label());
                     fieldDescriptors.put(annotation.index(),descriptor);
                     fieldCount++;
                 }

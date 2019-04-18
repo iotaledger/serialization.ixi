@@ -16,17 +16,17 @@ public class FieldDescriptorTest {
 
     @Test
     public void simpleConstructorTest(){
-        String expected = Trytes.padRight("D9A", FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
-        FieldDescriptor fieldDescriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("D9"),1,null);
+        String expected = Trytes.padRight("AA", FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
+        FieldDescriptor fieldDescriptor = FieldDescriptor.withAsciiLabel(false,1,null);
         assertEquals(expected, fieldDescriptor.toTrytes());
     }
 
     @Test
     public void deserializerTest() {
-        String src = Trytes.padRight("D9A", FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
+        String src = Trytes.padRight("AA", FieldDescriptor.FIELD_DESCRIPTOR_TRYTE_LENGTH);
 
         FieldDescriptor fieldDescriptor = FieldDescriptor.fromTrytes(src);
-        assertEquals(FieldType.fromTrytes("D9"), fieldDescriptor.getType());
+        assertEquals(false, fieldDescriptor.isList());
         assertEquals(BigInteger.ONE, fieldDescriptor.getTritSize());
         assertEquals("", fieldDescriptor.getAsciiLabel());
         assertEquals(src, fieldDescriptor.toTrytes());
@@ -34,20 +34,20 @@ public class FieldDescriptorTest {
 
     @Test
     public void serializeDeserializerTest() {
-        FieldDescriptor fieldDescriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
+        FieldDescriptor fieldDescriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
         String trytes = fieldDescriptor.toTrytes();
         FieldDescriptor fieldDescriptorDeserialized = FieldDescriptor.fromTrytes(trytes);
-        assertEquals(fieldDescriptor.getType(), fieldDescriptorDeserialized.getType());
+        assertEquals(fieldDescriptor.isList(), fieldDescriptorDeserialized.isList());
         assertEquals(fieldDescriptor.getTritSize(), fieldDescriptorDeserialized.getTritSize());
         assertEquals(fieldDescriptor.getAsciiLabel(), fieldDescriptorDeserialized.getAsciiLabel());
     }
 
     @Test
     public void labelTruncate() {
-        FieldDescriptor fieldDescriptor = FieldDescriptor.withTrytesLabel(FieldType.fromTrytes("AI"),48,"ABCDEFGHIKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWX");
+        FieldDescriptor fieldDescriptor = FieldDescriptor.withTrytesLabel(false,48,"ABCDEFGHIKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWX");
         String trytes = fieldDescriptor.toTrytes();
         FieldDescriptor fieldDescriptorDeserialized = FieldDescriptor.fromTrytes(trytes);
-        assertEquals(fieldDescriptor.getType(), fieldDescriptorDeserialized.getType());
+        assertEquals(fieldDescriptor.isList(), fieldDescriptorDeserialized.isList());
         assertEquals(fieldDescriptor.getTritSize(), fieldDescriptorDeserialized.getTritSize());
         assertEquals("ABCDEFGHIKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVW", fieldDescriptorDeserialized.getLabel());
     }

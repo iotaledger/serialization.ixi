@@ -1,10 +1,7 @@
 package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
-import org.iota.ict.ixi.serialization.model.md.FieldType;
-import org.iota.ict.ixi.serialization.util.SerializableField;
-import org.iota.ict.ixi.serialization.util.UnknownMetadataException;
-import org.iota.ict.ixi.serialization.util.Utils;
+import org.iota.ict.ixi.serialization.util.*;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
@@ -169,7 +166,7 @@ public class StructuredDataFragment extends BundleFragment {
         for (Field field : fields) {
             if (field.getAnnotation(SerializableField.class) != null) {
                 SerializableField annotation = field.getAnnotation(SerializableField.class);
-                FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes(annotation.fieldType()), annotation.tritLength(), annotation.label());
+                FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(field.getType().isAssignableFrom(List.class), annotation.tritLength(), annotation.label());
                 fieldDescriptors.put(annotation.index(), descriptor);
                 javaFields.put(annotation.index(), field);
                 fieldCount++;
@@ -186,12 +183,14 @@ public class StructuredDataFragment extends BundleFragment {
                     return null;
                 }
                 Field javaField = javaFields.get(i);
+                Class converterClass = javaField.getAnnotation(SerializableField.class).converter();
+                TritsConverter converter = TritsConverter.Factory.get(converterClass);
                 if(descriptor.isSingleValue()){
                     byte[] value = getValue(i);
-                    javaField.set(data, extractJavaValue(value,javaField.getType(),descriptor));
+                    javaField.set(data, converter.fromTrits(value));
                 }else{
                     List<byte[]> values = getListValue(i);
-                    javaField.set(data, extractJavaList(values,javaField,descriptor));
+                    javaField.set(data, extractJavaList(values,converter));
                 }
             }
             return data;
@@ -204,74 +203,27 @@ public class StructuredDataFragment extends BundleFragment {
         return null;
     }
 
-    private Object extractJavaValue(byte[] value, Class fieldType, FieldDescriptor descriptor){
-        if(descriptor.isInteger()){
-            BigInteger integer = Utils.integerFromTrits(value);
-            if(fieldType.equals(Integer.class)){
-                return integer.intValue();
-            }
-            if(fieldType.equals(Long.class)){
-                return integer.longValue();
-            }
-            if(fieldType.equals(BigInteger.class)){
-                return integer;
-            }
-            if(fieldType.equals(Integer.TYPE)){
-                if(integer==null) return 0;
-                return integer.intValue();
-            }
-            if(fieldType.equals(Long.TYPE)){
-                if(integer==null) return 0;
-                return integer.longValue();
-            }
-        }
-        if(descriptor.isAscii()){
-            return Utils.asciiFromTrits(value);
-        }
-        if(descriptor.isHash()){
-            return Trytes.fromTrits(value);
-        }
-        if(descriptor.isBoolean()){
-            return Utils.booleanFromTrits(value);
-        }
-        if(descriptor.isDecimal()){
-            BigDecimal decimal = Utils.decimalFromTrits(value);
-            if(fieldType.equals(Float.class)){
-                return decimal.floatValue();
-            }
-            if(fieldType.equals(Double.class)){
-                return decimal.doubleValue();
-            }
-            if(fieldType.equals(BigDecimal.class)){
-                return decimal;
-            }
-            if(fieldType.equals(Float.TYPE)){
-                if(decimal==null) return 0;
-                return decimal.floatValue();
-            }
-            if(fieldType.equals(Double.TYPE)){
-                if(decimal==null) return 0;
-                return decimal.doubleValue();
-            }
-
-        }
-        return null;
+    private static boolean isIntegerType(Class javaFieldType){
+        return javaFieldType.equals(Integer.class) || javaFieldType.equals(Long.class) || javaFieldType.equals(BigInteger.class) ||javaFieldType.equals(Integer.TYPE) ||javaFieldType.equals(Long.TYPE);
     }
-    private List extractJavaList(List<byte[]> values, Field field, FieldDescriptor descriptor){
+    private static boolean isStringType(Class javaFieldType){
+        return javaFieldType.equals(String.class);
+    }
+    private static boolean isBooleanType(Class javaFieldType){
+        return javaFieldType.equals(Boolean.class) || javaFieldType.equals(Boolean.TYPE);
+    }
+    private static boolean isDecimalType(Class javaFieldType){
+        return javaFieldType.equals(Float.class) || javaFieldType.equals(Double.class) || javaFieldType.equals(BigDecimal.class) ||javaFieldType.equals(Float.TYPE) ||javaFieldType.equals(Double.TYPE);
+    }
+
+    private List extractJavaList(List<byte[]> values, TritsConverter converter){
         List list = new ArrayList(values.size());
-        Class fieldType = findFieldTypeForList(field);
         for(byte[] value:values){
-            list.add(extractJavaValue(value, fieldType, descriptor));
+            list.add(converter.fromTrits(value));
         }
         return list;
     }
 
-    private static Class findFieldTypeForList(Field field){
-        if(field.getGenericType() instanceof ParameterizedType) {
-            return (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-        }
-        return null;
-    }
     public List<Boolean> getBooleanList(int i) throws UnknownMetadataException {
         List<byte[]> values = getListValue(i);
         List<Boolean> ret = new ArrayList<>(values.size());
@@ -403,7 +355,7 @@ public class StructuredDataFragment extends BundleFragment {
             for (Field field : fields) {
                 if (field.getAnnotation(SerializableField.class) != null) {
                     SerializableField annotation = field.getAnnotation(SerializableField.class);
-                    FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes(annotation.fieldType()), annotation.tritLength(), annotation.label());
+                    FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(field.getType().isAssignableFrom(List.class), annotation.tritLength(), annotation.label());
                     fieldDescriptors.put(annotation.index(), descriptor);
                     javaFields.put(annotation.index(), field);
                     fieldCount++;
@@ -427,59 +379,23 @@ public class StructuredDataFragment extends BundleFragment {
                     e.printStackTrace();
                     javaValue = null;
                 }
+                Class converterClass = javaField.getAnnotation(SerializableField.class).converter();
+                TritsConverter converter = TritsConverter.Factory.get(converterClass);
 
                 if(descriptor.isSingleValue()){
-                    setTritsValue(i, toTrits(javaValue, descriptor));
+                    setTritsValue(i, converter.toTrits(javaValue, descriptor.getTritSize().intValue()));
                 }else{
-                    setTritsValues(i, toTritsList((List) javaValue, descriptor));
+                    setTritsValues(i, toTritsList((List) javaValue, descriptor, converter));
                 }
             }
-
             return this;
         }
 
-        private byte[] toTrits(Object value, FieldDescriptor descriptor){
-            if(value==null){
-                return new byte[descriptor.getTritSize().intValue()];
-            }
-            if(descriptor.isHash()){
-                return Trytes.toTrits(value.toString());
-            }
-            if(descriptor.isBoolean()){
-                byte[] b = new byte[descriptor.getTritSize().intValue()];
-                if((boolean)value){
-                    b[0] = 1;
-                }else{
-                    b[0] = -1;
-                }
-                return b;
-            }
-            if(descriptor.isAscii()){
-                return Trytes.toTrits(Trytes.fromAscii(value.toString()));
-            }
-            if(descriptor.isInteger()){
-                //TODO : should not enforce size as multiple of 3
-                if(value instanceof BigInteger){
-                    return Trytes.toTrits(Trytes.fromNumber((BigInteger) value, descriptor.getTryteSize()));
-                }
-                if(value instanceof Integer){
-                    return Trytes.toTrits(Trytes.fromNumber(BigInteger.valueOf((Integer) value), descriptor.getTryteSize()));
-                }
-                if(value instanceof Long){
-                    return Trytes.toTrits(Trytes.fromNumber(BigInteger.valueOf((Long) value), descriptor.getTryteSize()));
-                }
-            }
-            if(descriptor.isDecimal()){
-                return Utils.decimalToTrits(value, descriptor.getTritSize().intValue());
-            }
-            return new byte[descriptor.getTritSize().intValue()];
-        }
-
-        private List<byte[]> toTritsList(List values, FieldDescriptor descriptor){
+        private List<byte[]> toTritsList(List values, FieldDescriptor descriptor, TritsConverter converter){
             if(values==null || values.size()==0) return Collections.EMPTY_LIST;
             List<byte[]> ret = new ArrayList<>(values.size());
             for(Object item:values){
-                ret.add(toTrits(item,descriptor));
+                ret.add(converter.toTrits(item,descriptor.getTritSize().intValue()));
             }
             return ret;
         }

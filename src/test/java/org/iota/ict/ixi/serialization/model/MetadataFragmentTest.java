@@ -1,6 +1,5 @@
 package org.iota.ict.ixi.serialization.model;
 
-import org.iota.ict.ixi.serialization.model.md.FieldType;
 import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.utils.Trytes;
@@ -15,8 +14,8 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
-        builder.appendField(FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label"));
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
+        builder.appendField(FieldDescriptor.withAsciiLabel(false,48,"a simple label"));
         MetadataFragment metadataFragment = builder.build();
         String expected = MetadataFragment.METADATA_LANGUAGE_VERSION+descriptor.toTrytes();
         expected = Trytes.padRight(expected, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -31,7 +30,7 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentWith40FieldTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
         for(int i=0; i<40 ; i++){
             builder.appendField(descriptor);
         }
@@ -53,7 +52,7 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentWith42FieldTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
         for(int i=0; i<42 ; i++){
             builder.appendField(descriptor);
         }
@@ -77,7 +76,7 @@ public class MetadataFragmentTest {
     @Test
     public void simpleMetadataFragmentWith81FieldTest(){
         MetadataFragment.Builder builder = new MetadataFragment.Builder();
-        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(FieldType.fromTrytes("AI"),48,"a simple label");
+        FieldDescriptor descriptor = FieldDescriptor.withAsciiLabel(false,48,"a simple label");
         for(int i=0; i<85 ; i++){
             builder.appendField(descriptor);
         }
@@ -127,11 +126,11 @@ public class MetadataFragmentTest {
         FieldDescriptor descriptor3 = metadataFragment.getDescriptor(3);
         FieldDescriptor descriptor4 = metadataFragment.getDescriptor(4);
 
-        assertEquals(FieldType.TYPE_BOOLEAN,descriptor0.getType());
-        assertEquals(FieldType.TYPE_ASCII,descriptor1.getType());
-        assertEquals(FieldType.TYPE_HASH,descriptor2.getType());
-        assertEquals(FieldType.TYPE_HASH_LIST,descriptor3.getType());
-        assertEquals(FieldType.TYPE_INTEGER,descriptor4.getType());
+        assertEquals(false,descriptor0.isList());
+        assertEquals(false,descriptor1.isList());
+        assertEquals(false,descriptor2.isList());
+        assertEquals(true,descriptor3.isList());
+        assertEquals(false,descriptor4.isList());
 
         assertEquals(1,descriptor0.getTritSize().intValue());
         assertEquals(99,descriptor1.getTritSize().intValue());

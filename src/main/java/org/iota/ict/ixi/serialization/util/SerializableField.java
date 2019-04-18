@@ -11,5 +11,5 @@ public @interface SerializableField {
     int index();
     long tritLength();
     String label() default "";
-    String fieldType();
+    Class<? extends TritsConverter> converter();
 }
