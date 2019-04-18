@@ -38,7 +38,7 @@ public class SampleData {
 
         simpleDataFragment = new StructuredDataFragment.Builder()
                 .setMetadata(classWithOneAsciiField)
-                .setValue(0, "hello", TritsConverter.ASCII)
+                .setValue(0, TritsConverter.ASCII, "hello")
                 .build();
 
         sample = buildSampleClassInstance();

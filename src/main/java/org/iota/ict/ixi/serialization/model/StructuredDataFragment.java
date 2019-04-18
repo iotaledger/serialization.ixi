@@ -247,7 +247,7 @@ public class StructuredDataFragment extends BundleFragment {
             return this;
         }
 
-        public <T> Builder setValue(int index, T data, TritsConverter<T> converter){
+        public <T> Builder setValue(int index, TritsConverter<T> converter, T data){
             byte[] trits = converter.toTrits(data, metadata.getDescriptor(index).getTritSize().intValue());
             return setTritsValue(index, trits);
         }

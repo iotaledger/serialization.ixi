@@ -46,7 +46,7 @@ Anyone (i.e. any other ixi) interested by the data published on the Tangle have 
 
 #### High level API
 
-To simplify the publication process, this IXI provides a high level API making use of annotated java class
+To simplify the serialization/deserialization process, this IXI provides a high level API making use of annotated java class
 to define the Metadata.
 
 Example :
@@ -71,7 +71,8 @@ public class Sample {
 Notes :
  1. each field have an index. All indexes MUST be different and be continuous. (i.e. defining a field at index 0 ,1 and 3 is illegal because index 2 is missing)
  2. serializable fields are public (to simplify implementation)
- 3. a converter must be specified for each field. The converter instruct serialization.ixi on how to convert raw trits to their deserialize form.
+ 3. a converter must be specified for each field. The converter instruct serialization.ixi on how to convert field value
+  to/from raw trits. serialization.ixi offer a few converter for usual types (numbers, trytes, ...) but a custom converter can be use to serialize more complex types.
  
 ##### Publish/serialize
 
@@ -153,9 +154,9 @@ Building a MetadataFragment consist essentially in appending FieldDescriptor to 
 A fieldDescriptor describe a serialized field and match exactly the `@SerializableField` annotation presented earlier.
 
 ```
-FieldDescriptor name = FieldDescriptor.build(false, 243);
-FieldDescriptor age = FieldDescriptor.build(false, 7);
-FieldDescriptor isMale = FieldDescriptor.build(false, 1);
+FieldDescriptor name = FieldDescriptor.build(false, 243);  //not a list, 243 trits length
+FieldDescriptor age = FieldDescriptor.build(false, 7);     //not a list, 7 trits length
+FieldDescriptor isMale = FieldDescriptor.build(false, 1);  //not a list, 1 trit length
 MetadataFragment metadatafragment =  new MetadataFragment.Builder()
                                             .appendField(name)
                                             .appendField(age)
@@ -176,6 +177,15 @@ StructuredDataFragment dataFragment = new StructuredDataFragment.Builder()
                                             .setValue(1, Trytes.fromNumber(BigInteger.valueOf(47),2))
                                             .setBooleanValue(2, true)
                                             .build();
+```
+
+or, as a convenient alternative, you can use converters :
+```
+StructuredDataFragment structuredDataFragment = new StructuredDataFragment.Builder()
+                .setMetadata(metadataFragment)
+                .setValue(0, TritsConverter.ASCII, "my name")
+                .setValue(1, TritsConverter.BIG_INTEGER, BigInteger.valueOf(47))
+                .build();
 ```
 
 ##### Receive a StructuredDataFragment
