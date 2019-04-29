@@ -36,7 +36,7 @@ This denotes kind of "genesis" for the classes DAG.
 
 Address field of the head transaction of a ClassFragment is reserved to store the MetaclassHash.  
 Extradata-digest and address fields of a ClassFragment store the classHash of referenced fragments.
-A reference to another dataFragment of the same class is denoted by the NULL_HASH. This allow the creation of "chain" of DataFragment
+A reference to an arbitrary transaction is denoted by the NULL_HASH. This allow the creation of "chain" of DataFragment, but also referencing non DataFragment.
 
 ### DataFragment
 
@@ -110,8 +110,6 @@ Searching for all DataFragments referencing a specific DataFragment can also be 
 
     //ACCESSORS
     
-    public DataFragment getFragmentAtIndex(DataFragment fragment, int index);
-
     public byte[] getData(DataFragment dataFragment);
 
     public byte[] getData(String dataFragmentTransactionHash);

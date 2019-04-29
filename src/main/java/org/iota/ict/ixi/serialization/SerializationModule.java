@@ -1,12 +1,15 @@
 package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.eee.Environment;
+import org.iota.ict.eee.call.EEEFunction;
+import org.iota.ict.eee.call.FunctionEnvironment;
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.serialization.model.*;
 import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.transaction.Transaction;
+import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.network.gossip.GossipEvent;
 import org.iota.ict.network.gossip.GossipPreprocessor;
 import org.iota.ict.utils.Constants;
@@ -21,24 +24,88 @@ public class SerializationModule extends IxiModule {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SerializationModule.class);
 
-    public static SerializationModule INSTANCE;
+    /**
+     * Input  : <data size decimal>;[<classHash1>;<classHash2>;...]
+     * Output : <ClassHash trytes>
+     */
+    private final EEEFunction computeClassHash = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "computeClassHash"));
+
+    /**
+     * Input  : <classHash>;<data trytes>;<trunk_hash>;<branch_hash>;[<ref0_transaction_hash>;<ref1_transaction_hash>;...]
+     * Output : <fragment_tail_transaction_trytes>[;<body_transaction_trytes>*;<head_transaction_trytes>]
+     */
+    private final EEEFunction buildDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "buildDataFragment"));
+
+    /**
+     * Input  : <data size decimal>;<trunk_hash>;<branch_hash>;[<classHash1>;<classHash2>;...]
+     * Output : <fragment_tail_transaction_trytes>[;<body_transaction_trytes>*;<head_transaction_trytes>]
+     */
+    private final EEEFunction buildClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "buildClassFragment"));
+
+    /**
+     * Input  : <data_fragment_head_transaction_hash>
+     * Output : <data as trytes>
+     */
+    private final EEEFunction getData = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "getData"));
+
+    /**
+     * Input  : <data_fragment_head_transaction_hash>;<index_of_the_reference>
+     * Output : <data of the referenced fragment (as trytes)>
+     */
+    private final EEEFunction getReferencedData = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "getReferencedData"));
+
+    /**
+     * Input  : <data_fragment_head_transaction_hash>;<index_of_the_reference>
+     * Output : <transactionHash referenced at index>
+     */
+    private final EEEFunction getReference = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "getReference"));
+
+    /**
+     * Input  : <classHash>
+     * Output : <transaction hash of dataFragment>*
+     */
+    private final EEEFunction findFragmentsForClass = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "findFragmentsForClass"));
+
+    /**
+     * Input  : <classHash>;<referenced transaction hash>;<index of searched reference>
+     * Output : <transaction hash of dataFragment>*
+     */
+    private final EEEFunction findReferencing = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "findReferencing"));
+
+
 
     public SerializationModule(Ixi ixi) {
         super(ixi);
-        INSTANCE = this;
+
+        ixi.addListener(new BundleListener());
+
+        //EEE
+        ixi.addListener(computeClassHash);
+        ixi.addListener(buildDataFragment);
+        ixi.addListener(buildClassFragment);
+        ixi.addListener(getData);
+        ixi.addListener(getReferencedData);
+        ixi.addListener(findFragmentsForClass);
+        ixi.addListener(findReferencing);
     }
 
     private Map<DataFragment.Filter, DataFragment.Listener> listeners = new HashMap<>();
 
     @Override
     public void run() {
-        ;
+        new EEERequestHandler(computeClassHash, request -> processComputeClassHashRequest(request)).start();
+        new EEERequestHandler(buildDataFragment, request -> processBuildDataRequest(request)).start();
+        new EEERequestHandler(buildClassFragment, request -> processBuildClassRequest(request)).start();
+        new EEERequestHandler(getData, request -> processGetDataRequest(request)).start();
+        new EEERequestHandler(getReferencedData, request -> processGetReferencedDataRequest(request)).start();
+        new EEERequestHandler(getReference, request -> processGetReferenceRequest(request)).start();
+        new EEERequestHandler(findFragmentsForClass, request -> processFindFragmentsForClassRequest(request)).start();
+        new EEERequestHandler(findReferencing, request -> processFindReferencingRequest(request)).start();
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        ixi.addListener(new BundleListener());
         LOGGER.info("Serialization.ixi started...");
     }
 
@@ -279,6 +346,127 @@ public class SerializationModule extends IxiModule {
         return null;
     }
 
+
+    //EEE
+
+    private void processComputeClassHashRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String dataSize = split[0];
+        ClassFragment.Builder builder = new ClassFragment.Builder().withDataSize(Integer.valueOf(dataSize));
+        if(split.length>1) {
+            String[] references = argument.substring(argument.indexOf(";") + 1).split(";");
+            for (String s : references) {
+                builder.addReferencedClasshash(s);
+            }
+        }
+        String ret = builder.build().getClassHash();
+        request.submitReturn(ixi, ret);
+    }
+
+    private void processBuildDataRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String classHash = split[0];
+        DataFragment.Builder builder = new DataFragment.Builder(classHash);
+        builder.setData(Trytes.toTrits(split[1]));
+        builder.setReferencedTrunk(split[2]);
+        builder.setReferencedTrunk(split[3]);
+        if(split.length>4) {
+            int i = 4;
+            while(i<split.length) {
+                builder.setReference(i-4,split[i]);
+            }
+        }
+        DataFragment.Prepared prepared = builder.prepare();
+        List<String> transactions = new ArrayList<>(prepared.fromTailToHead().size());
+        for(TransactionBuilder txBuilder:prepared.fromTailToHead()){
+            transactions.add(txBuilder.build().decodeBytesToTrytes());
+        }
+        request.submitReturn(ixi, String.join(";",transactions));
+    }
+
+    private void processBuildClassRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String dataSize = split[0];
+        ClassFragment.Builder builder = new ClassFragment.Builder().withDataSize(Integer.valueOf(dataSize));
+        builder.setReferencedTrunk(split[1]);
+        builder.setReferencedTrunk(split[2]);
+        if(split.length>3) {
+            int i = 3;
+            while(i<split.length) {
+                builder.addReferencedClasshash(split[i]);
+            }
+        }
+        ClassFragment.Prepared prepared = builder.prepare();
+        List<String> transactions = new ArrayList<>(prepared.fromTailToHead().size());
+        for(TransactionBuilder txBuilder:prepared.fromTailToHead()){
+            transactions.add(txBuilder.build().decodeBytesToTrytes());
+        }
+        request.submitReturn(ixi, String.join(";",transactions));
+    }
+
+    private void processGetDataRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String hash = split[0];
+        DataFragment fragment = loadDataFragment(hash);
+        String ret = Trytes.fromTrits(fragment.getData());
+        request.submitReturn(ixi, ret);
+    }
+
+    private void processGetReferencedDataRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String hash = split[0];
+        int index = Integer.valueOf(split[1]);
+        DataFragment fragment = loadDataFragment(hash);
+        String ret = Trytes.fromTrits(getDataAtIndex(fragment, index));
+        request.submitReturn(ixi, ret);
+    }
+
+    private void processGetReferenceRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String hash = split[0];
+        int index = Integer.valueOf(split[1]);
+        DataFragment fragment = loadDataFragment(hash);
+        String ret = fragment.getReference(index);
+        request.submitReturn(ixi, ret);
+    }
+
+    private void processFindFragmentsForClassRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String classHash = split[0];
+        Set<DataFragment> fragments = findDataFragmentForClassHash(classHash);
+        returnFragmentSet(request, fragments);
+    }
+
+    private void processFindReferencingRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String classHash = split[0];
+        String referencedTransactionHash = split[1];
+        int index = Integer.valueOf(split[2]);
+        Set<DataFragment> fragments = findDataFragmentReferencing(classHash, referencedTransactionHash, index);
+        returnFragmentSet(request, fragments);
+    }
+
+    private void returnFragmentSet(EEEFunction.Request request, Set<DataFragment> fragments) {
+        if (fragments.size() == 0) {
+            request.submitReturn(ixi, "");
+        } else {
+            ArrayList<String> ret = new ArrayList<>(fragments.size());
+            for (DataFragment fragment : fragments) {
+                ret.add(fragment.getHeadTransaction().hash);
+            }
+            request.submitReturn(ixi, String.join(";", ret));
+        }
+    }
+
+
     /**
      * Receive Bundles and inspect them to find metadata fragments or structured data fragments.
      * When a metadataFragment is found: it is registered @SerializationModule.
@@ -383,4 +571,30 @@ public class SerializationModule extends IxiModule {
         }
     }
 
+
+    private class EEERequestHandler extends Thread {
+
+        EEEHandler handler;
+        EEEFunction eeeFunction;
+
+        public EEERequestHandler(EEEFunction eeeFunction, EEEHandler handler) {
+            this.handler = handler;
+            this.eeeFunction = eeeFunction;
+        }
+
+        @Override
+        public void run() {
+            while (isRunning()) {
+                try {
+                    handler.handleRequest(eeeFunction.requestQueue.take());
+                } catch (InterruptedException e) {
+                    if(isRunning()) throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    interface EEEHandler {
+        void handleRequest(EEEFunction.Request request);
+    }
 }
