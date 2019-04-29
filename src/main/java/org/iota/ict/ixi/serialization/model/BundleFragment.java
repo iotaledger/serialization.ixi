@@ -1,8 +1,5 @@
 package org.iota.ict.ixi.serialization.model;
 
-import com.iota.curl.IotaCurlHash;
-import com.iota.curl.IotaCurlUtils;
-import org.iota.ict.ixi.serialization.model.md.FieldDescriptor;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 
@@ -15,9 +12,32 @@ public abstract class BundleFragment {
     public static int CURL_ROUNDS_BUNDLE_FRAGMANT_HASH = 27;
 
     private Transaction headTransaction;
-    private String hash;
 
     public BundleFragment(Transaction headTransaction) {
+        init(headTransaction);
+    }
+
+
+    protected void init(Transaction headTransaction){
+        if(!hasHeadFlag(headTransaction)){
+            throw new IllegalArgumentException("head transaction don't have the head flag");
+        }
+        if(!hasTailFlag(headTransaction)){
+            //search for tail flag is next transactions.
+            Transaction tx = headTransaction.getTrunk();
+            boolean foundTail = false;
+            while(tx!=null && !foundTail){
+                if(hasHeadFlag(tx)){
+                    throw new IllegalArgumentException("no bundle tail transaction");
+                }
+                foundTail = hasTailFlag(tx);
+                tx = tx.getTrunk();
+            }
+            if(!foundTail){
+                throw new IllegalArgumentException("tailtransaction not found");
+            }
+        }
+
         this.headTransaction = headTransaction;
     }
 
@@ -31,22 +51,6 @@ public abstract class BundleFragment {
             tail = tail.getTrunk();
         }
         return tail;
-    }
-
-    public String hash(){
-        if(hash!=null){
-            return hash;
-        }
-        StringBuilder sb = new StringBuilder(headTransaction.signatureFragments());
-        Transaction tx = headTransaction;
-        while(tx!=null && !hasTailFlag(tx)){
-            tx = tx.getTrunk();
-            if(tx!=null) {
-                sb.append(tx.signatureFragments());
-            }
-        }
-        hash = IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_BUNDLE_FRAGMANT_HASH);
-        return hash;
     }
 
     abstract boolean hasTailFlag(Transaction t);
@@ -117,6 +121,7 @@ public abstract class BundleFragment {
                 getTail().isBundleTail = true;
             }
         }
+
         private Transaction buildTrunkLinkedChainAndReturnHead() {
 
             Transaction lastTransaction = null;
