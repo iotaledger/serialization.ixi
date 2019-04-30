@@ -371,11 +371,12 @@ public class SerializationModule extends IxiModule {
         DataFragment.Builder builder = new DataFragment.Builder(classHash);
         builder.setData(Trytes.toTrits(split[1]));
         builder.setReferencedTrunk(split[2]);
-        builder.setReferencedTrunk(split[3]);
+        builder.setReferencedBranch(split[3]);
         if(split.length>4) {
             int i = 4;
             while(i<split.length) {
                 builder.setReference(i-4,split[i]);
+                i++;
             }
         }
         DataFragment.Prepared prepared = builder.prepare();
@@ -392,11 +393,12 @@ public class SerializationModule extends IxiModule {
         String dataSize = split[0];
         ClassFragment.Builder builder = new ClassFragment.Builder().withDataSize(Integer.valueOf(dataSize));
         builder.setReferencedTrunk(split[1]);
-        builder.setReferencedTrunk(split[2]);
+        builder.setReferencedBranch(split[2]);
         if(split.length>3) {
             int i = 3;
             while(i<split.length) {
                 builder.addReferencedClasshash(split[i]);
+                i++;
             }
         }
         ClassFragment.Prepared prepared = builder.prepare();
