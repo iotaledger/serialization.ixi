@@ -1,5 +1,6 @@
 package org.iota.ict.ixi.serialization;
 
+import com.iota.curl.IotaCurlHash;
 import org.iota.ict.Ict;
 import org.iota.ict.eee.EffectListener;
 import org.iota.ict.eee.Environment;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -357,7 +359,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -472,7 +474,49 @@ public class SerializationModuleIT {
         }
     }
 
+    @Test
+    public void buildGetDataEEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env0 = new FunctionEnvironment("Serialization.ixi","buildDataFragment");
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","getData");
+        final AtomicBoolean done = new AtomicBoolean(false);
 
+        final ArrayList<String> transactions = new ArrayList<>();
+        String randomClassHah = TestUtils.randomHash();
+        //first build a simple dataFragment
+        registerReturnHandler(env0,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("data")) {
+                assertEquals(2, split.length);
+                String transactionTrytes = split[1];
+                String hash = IotaCurlHash.iotaCurlHash(transactionTrytes+Trytes.NULL_HASH, Constants.TRANSACTION_SIZE_TRYTES + 81, Constants.RUN_MODUS != Constants.RunModus.MAIN ? 9 : Constants.CURL_ROUNDS_TRANSACTION_HASH);
+                transactions.add(hash);
+            }
+        }, countDownLatch, throwableHolder);
+        ict.submitEffect(env0,"data;"+randomClassHah+";DATA;"+Trytes.NULL_HASH+";"+Trytes.NULL_HASH);
+        countDownLatch.await(200000, TimeUnit.MILLISECONDS);
+        String tx_hash = transactions.get(0);
+
+        final CountDownLatch countDownLatch2 = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder2 = new ThrowableHolder();
+        final AtomicBoolean done2 = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("search")) {
+                assertEquals(2, split.length);
+                assertEquals("DATA", split[1]);
+                done2.set(true);
+            }
+        }, countDownLatch2, throwableHolder2);
+        ict.submitEffect(env,"search;"+tx_hash);
+
+        assertTrue(done2.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
 
     private void registerReturnHandler(FunctionEnvironment env, ReturnHandler returnHandler, CountDownLatch countDownLatch, ThrowableHolder throwableHolder){
         final Environment returnEnv = new FunctionReturnEnvironment(env);
