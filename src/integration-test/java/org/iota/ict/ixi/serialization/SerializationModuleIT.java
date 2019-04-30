@@ -476,30 +476,16 @@ public class SerializationModuleIT {
 
     @Test
     public void buildGetDataEEETest() throws InterruptedException {
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","getData");
+
+        String randomClassHah = TestUtils.randomHash();
+        DataFragment.Builder builder = new DataFragment.Builder(randomClassHah);
+        builder.setData(Trytes.toTrits("DATA"));
+        BundleFragment fragment = serializationModule.publishBundleFragment(builder.build());
+        String tx_hash = fragment.getHeadTransaction().hash;
+
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
-        final FunctionEnvironment env0 = new FunctionEnvironment("Serialization.ixi","buildDataFragment");
-        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","getData");
-        final AtomicBoolean done = new AtomicBoolean(false);
-
-        final ArrayList<String> transactions = new ArrayList<>();
-        String randomClassHah = TestUtils.randomHash();
-        //first build a simple dataFragment
-        registerReturnHandler(env0,effect -> {
-            String[] split = effect.toString().split(";");
-            if(split[0].equals("data")) {
-                assertEquals(2, split.length);
-                String transactionTrytes = split[1];
-                String hash = IotaCurlHash.iotaCurlHash(transactionTrytes+Trytes.NULL_HASH, Constants.TRANSACTION_SIZE_TRYTES + 81, Constants.RUN_MODUS != Constants.RunModus.MAIN ? 9 : Constants.CURL_ROUNDS_TRANSACTION_HASH);
-                transactions.add(hash);
-            }
-        }, countDownLatch, throwableHolder);
-        ict.submitEffect(env0,"data;"+randomClassHah+";DATA;"+Trytes.NULL_HASH+";"+Trytes.NULL_HASH);
-        countDownLatch.await(200000, TimeUnit.MILLISECONDS);
-        String tx_hash = transactions.get(0);
-
-        final CountDownLatch countDownLatch2 = new CountDownLatch(1);
-        final ThrowableHolder throwableHolder2 = new ThrowableHolder();
         final AtomicBoolean done2 = new AtomicBoolean(false);
 
         registerReturnHandler(env,effect -> {
@@ -509,9 +495,9 @@ public class SerializationModuleIT {
                 assertEquals("DATA", split[1]);
                 done2.set(true);
             }
-        }, countDownLatch2, throwableHolder2);
+        }, countDownLatch, throwableHolder);
         ict.submitEffect(env,"search;"+tx_hash);
-
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done2.get());
         if(throwableHolder.throwable!=null){
             fail(throwableHolder.throwable);
