@@ -1,6 +1,10 @@
 package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.Ict;
+import org.iota.ict.eee.EffectListener;
+import org.iota.ict.eee.Environment;
+import org.iota.ict.eee.call.FunctionEnvironment;
+import org.iota.ict.eee.call.FunctionReturnEnvironment;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.IxiModuleHolder;
 import org.iota.ict.ixi.IxiModuleInfo;
@@ -10,14 +14,19 @@ import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
+import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 import org.iota.ict.utils.properties.Properties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -282,4 +291,215 @@ public class SerializationModuleIT {
         return null;
     }
 
+    @Test
+    public void computeClassHashEEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","computeClassHash");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+                String[] split = effect.toString().split(";");
+                if(split[0].equals("1")) {
+                    assertEquals(2, split.length);
+                    assertEquals("9ZHHQLPWVSDOJIOROTRHQNGMLMZAWISFMYSFSECRCJBZRHNZJCFWGBASZITSZAGMSQRIMZSJGGCLLWI9Y", split[1]);
+                    done.set(true);
+                }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"1;25");
+
+        countDownLatch.await(200, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+    @Test
+    public void computeClassHash2EEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","computeClassHash");
+        final AtomicBoolean done = new AtomicBoolean(false);
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("2")) {
+                assertEquals(2, split.length);
+                assertEquals(81, split[1].length());
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"2;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(200, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+
+    @Test
+    public void buildDataFragmentEEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildDataFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("1")) {
+                assertEquals(2, split.length);
+                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"1;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+    @Test
+    public void buildDataFragment2EEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildDataFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("2")) {
+                assertEquals(3, split.length);
+                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[2].length());
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"2;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+                +TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(10000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+
+    @Test
+    public void buildClassFragmentEEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildClassFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("1")) {
+                assertEquals(2, split.length);
+                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"1;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+
+    @Test
+    public void buildClassFragment2EEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildClassFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("2")) {
+                assertEquals(2, split.length);
+                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"2;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+    @Test
+    public void buildClassFragment3EEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildClassFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("3")) {
+                assertEquals(3, split.length);
+                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[2].length());
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"3;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+                +TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+
+
+    private void registerReturnHandler(FunctionEnvironment env, ReturnHandler returnHandler, CountDownLatch countDownLatch, ThrowableHolder throwableHolder){
+        final Environment returnEnv = new FunctionReturnEnvironment(env);
+        ict.addListener(new EffectListener() {
+            @Override
+            public void onReceive(Object effect) {
+                try {
+                    returnHandler.onReceive(effect);
+                }catch (Throwable error){
+                    error.printStackTrace();
+                    throwableHolder.throwable = error;
+                }
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public Environment getEnvironment() {
+                return returnEnv;
+            }
+        });
+    }
+
+    interface ReturnHandler {
+        void onReceive(Object effect);
+    }
+
+    private static class ThrowableHolder {
+        Throwable throwable;
+    }
 }
