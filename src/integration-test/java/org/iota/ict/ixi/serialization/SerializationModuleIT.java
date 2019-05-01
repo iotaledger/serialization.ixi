@@ -480,7 +480,7 @@ public class SerializationModuleIT {
 
         String randomClassHah = TestUtils.randomHash();
         DataFragment.Builder builder = new DataFragment.Builder(randomClassHah);
-        builder.setData(Trytes.toTrits("DATA"));
+        builder.setData("DATA");
         BundleFragment fragment = serializationModule.publishBundleFragment(builder.build());
         String tx_hash = fragment.getHeadTransaction().hash;
 
@@ -504,6 +504,41 @@ public class SerializationModuleIT {
         }
     }
 
+    @Test
+    public void registerListenerTest() throws InterruptedException {
+        String randomClassHash = TestUtils.randomHash();
+        String envId = "test0";
+        final Environment environment = new Environment(envId);
+        serializationModule.registerDataListener(randomClassHash, envId);
+        DataFragment fragment = new DataFragment.Builder(randomClassHash).setData("DATADATA").build();
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final AtomicBoolean done = new AtomicBoolean(false);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        EffectListener<DataFragment> checker = new EffectListener<DataFragment>() {
+            @Override
+            public void onReceive(DataFragment effect) {
+                try {
+                    assertEquals("DATADATA", Trytes.fromTrits(effect.getData()));
+                    done.set(true);
+                }catch (Throwable e){
+                    throwableHolder.throwable = e;
+                }
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public Environment getEnvironment() {
+                return environment;
+            }
+        };
+        ict.addListener(checker);
+        serializationModule.publishBundleFragment(fragment);
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+        assertTrue(done.get());
+    }
     private void registerReturnHandler(FunctionEnvironment env, ReturnHandler returnHandler, CountDownLatch countDownLatch, ThrowableHolder throwableHolder){
         final Environment returnEnv = new FunctionReturnEnvironment(env);
         ict.addListener(new EffectListener() {

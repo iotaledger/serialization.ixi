@@ -113,8 +113,13 @@ public class DataFragment extends BundleFragment {
             }
         }
 
-        public void setData(byte[] data) {
+        public Builder setData(byte[] data) {
             this.data = data;
+            return this;
+        }
+
+        public Builder setData(String data) {
+            return setData(Trytes.toTrits(data));
         }
 
         private void setTags() {

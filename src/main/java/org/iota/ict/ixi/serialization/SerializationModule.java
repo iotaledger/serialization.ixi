@@ -90,7 +90,7 @@ public class SerializationModule extends IxiModule {
         ixi.addListener(findReferencing);
     }
 
-    private Map<DataFragment.Filter, DataFragment.Listener> listeners = new HashMap<>();
+    private Map<DataFragment.Filter, String> listeners = new HashMap<>();
 
     @Override
     public void run() {
@@ -279,31 +279,32 @@ public class SerializationModule extends IxiModule {
     //TODO : review listeners mechanics
 
     /**
-     * Register a dataListener to be notified when a StructuredDataFragment of a particular class clazz is received.
+     * Request submission of effect when dataFragment with a particular classHash is received.
      *
-     * @param listener : the listener to callback
+     * @param environmentId : environment where effect will be sent
      */
-    public void registerDataListener(String classHash, final DataFragment.Listener listener) {
+    public void registerDataListener(String classHash, String environmentId) {
         DataFragment.Filter matcher = dataFragment ->
                 dataFragment.getClassHash().equals(classHash);
-        registerDataListener(matcher, listener);
+        registerDataListener(matcher, environmentId);
     }
 
 
     /**
-     * Register a dataListener to be notified when a StructuredDataFragment is received.
+     * Request submission of effect when dataFragment with a particular classHash is received.
      *
      * @param matcher  : a filter for fragment of interest
-     * @param listener : the listener to callback
+     * @param environmentId : environment where effect will be sent
      */
-    public void registerDataListener(DataFragment.Filter matcher, DataFragment.Listener listener) {
-        listeners.put(matcher, listener);
+    public void registerDataListener(DataFragment.Filter matcher, String environmentId) {
+        listeners.put(matcher, environmentId);
     }
 
     void notifyListeners(DataFragment dataFragment) {
         for (DataFragment.Filter dataFragmentFilter : listeners.keySet()) {
             if (dataFragmentFilter.match(dataFragment)) {
-                listeners.get(dataFragmentFilter).onData(dataFragment);
+                Environment env = new Environment(listeners.get(dataFragmentFilter));
+                ixi.submitEffect(env, dataFragment);
             }
         }
     }
@@ -584,12 +585,8 @@ public class SerializationModule extends IxiModule {
         }
 
         private Transaction processDataFragment(Transaction fragmentHead) {
-            String classHash = fragmentHead.address();
-            ClassFragment classFragment = loadClassFragment(classHash);
-            if (classFragment != null) {
-                DataFragment dataFragment = new DataFragment(fragmentHead);
-                notifyListeners(dataFragment);
-            }
+            DataFragment dataFragment = new DataFragment(fragmentHead);
+            notifyListeners(dataFragment);
             return null;
         }
     }
