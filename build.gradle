@@ -30,12 +30,9 @@ configurations {
 }
 
 dependencies {
-    compileOnly ('com.github.iotaledger:ict:0.7-SNAPSHOT')
-    runtimeClasspath ('com.github.iotaledger:ict:0.6')
-    testCompileOnly ('com.github.iotaledger:ict:0.6')
-    compileOnly group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    runtimeClasspath group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
-    testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
+    compileOnly ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
+    runtimeClasspath ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
+    testCompileOnly ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.4.1'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.21.0'
 }
