@@ -70,11 +70,11 @@ Searching for all DataFragments referencing a specific DataFragment can also be 
      */
     public DataFragment.Prepared prepare(DataFragment.Builder builder);
     /**
-     * Build a MetadataFragment.Prepared from builder.
-     * The MetadataFragment.Prepared can be used later to insert the metadataFragment in a Bundle.
-     * @return a prepared MetadataFragment.
+     * Build a ClassFragment.Prepared from builder.
+     * The ClassFragment.Prepared can be used later to insert the classFragment in a Bundle.
+     * @return a prepared ClassFragment.
      */
-    public ClassFragment.Prepared prepareMetadata(ClassFragment.Builder builder);
+    public ClassFragment.Prepared prepare(ClassFragment.Builder builder);
     
     //SEARCH
     
@@ -117,3 +117,13 @@ Searching for all DataFragments referencing a specific DataFragment can also be 
     public byte[] getDataAtIndex(DataFragment dataFragment, int index);
         
     public DataFragment getDataFragment(DataFragment dataFragment, int index);
+    
+    //EEE
+    
+    /**
+     * Request submission of effect when dataFragment with a particular classHash is received.
+     *
+     * @param classHash : classHash to watch
+     * @param environmentId : environment where effect will be sent
+     */
+    public void registerDataListener(String classHash, String environmentId);
