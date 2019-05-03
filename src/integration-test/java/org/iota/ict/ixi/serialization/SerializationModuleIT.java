@@ -97,22 +97,19 @@ public class SerializationModuleIT {
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         byte[] data = new byte[]{1,1,1,1,1,1,1,1,1};
         builder.setData(data);
-        DataFragment fragment0 = builder.build();
 
         ClassFragment classFragment2 = new ClassFragment.Builder()
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81))
                 .build();
+        DataFragment fragment0 = serializationModule.publishBundleFragment(builder);
 
-        builder = new DataFragment.Builder(classFragment2);
+        DataFragment.Builder builder1 = new DataFragment.Builder(classFragment2);
         data = new byte[]{-1,-1,-1,-1,-1,-1,-1,-1,-1};
-        builder.setData(data);
-        builder.setReference(0, fragment0);
-        DataFragment fragment1 = builder.build();
+        builder1.setData(data);
+        builder1.setReference(0, fragment0);
 
-        serializationModule.publishBundleFragment(fragment0);
-        serializationModule.publishBundleFragment(fragment1);
-
+        DataFragment fragment1 = serializationModule.publishBundleFragment(builder1);
         DataFragment fragment0Clone = serializationModule.getDataFragment(fragment1, 0);
 
         assertEquals(fragment0.getReference(0), fragment0Clone.getReference(0));
@@ -129,7 +126,7 @@ public class SerializationModuleIT {
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         byte[] data = TestUtils.randomTrits(25002);
         builder.setData(data);
-        DataFragment fragment0 = builder.build();
+        DataFragment fragment0 = serializationModule.publishBundleFragment(builder);
 
         ClassFragment classFragment2 = new ClassFragment.Builder()
                 .addReferencedClasshash(TestUtils.random(81))
@@ -140,10 +137,7 @@ public class SerializationModuleIT {
         data = TestUtils.randomTrits(25002);
         builder.setData(data);
         builder.setReference(0, fragment0);
-        DataFragment fragment1 = builder.build();
-
-        serializationModule.publishBundleFragment(fragment0);
-        serializationModule.publishBundleFragment(fragment1);
+        DataFragment fragment1 = serializationModule.publishBundleFragment(builder);
 
         DataFragment fragment0Clone = serializationModule.getDataFragment(fragment1, 0);
 
@@ -187,8 +181,7 @@ public class SerializationModuleIT {
         String dataTransactionHash = createAndSubmitBundle(classHash, null);
         DataFragment.Builder builder = new DataFragment.Builder(classHash2);
         builder.setReference(0, dataTransactionHash);
-        DataFragment referencingFragment = serializationModule.buildDataFragment(builder);
-        serializationModule.publishBundleFragment(referencingFragment);
+        DataFragment referencingFragment = serializationModule.publishBundleFragment(builder);
 
         Set<DataFragment> fragments = serializationModule.findDataFragmentReferencing(classHash2,dataTransactionHash,0);
         assertEquals(1,fragments.size());
@@ -205,8 +198,7 @@ public class SerializationModuleIT {
         ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder();
         classFragmentBuilder.withDataSize(99);
         classFragmentBuilder.addReferencedClasshash(TestUtils.randomHash());
-        ClassFragment classFragment = serializationModule.buildClassFragment(classFragmentBuilder);
-        serializationModule.publishBundleFragment(classFragment);
+        ClassFragment classFragment = serializationModule.publishBundleFragment(classFragmentBuilder);
 
         ClassFragment reloadedClassFragment = serializationModule.loadClassFragmentForClassHash(classFragment.getClassHash());
         assertEquals(classFragment.getClassHash(),reloadedClassFragment.getClassHash());
@@ -220,8 +212,7 @@ public class SerializationModuleIT {
         ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder();
         classFragmentBuilder.withDataSize(99);
         classFragmentBuilder.addReferencedClasshash(TestUtils.randomHash());
-        ClassFragment classFragment = serializationModule.buildClassFragment(classFragmentBuilder);
-        serializationModule.publishBundleFragment(classFragment);
+        ClassFragment classFragment = serializationModule.publishBundleFragment(classFragmentBuilder);
 
         ClassFragment loaded = serializationModule.loadClassFragment(classFragment.getHeadTransaction().hash);
         assertEquals(classFragment.getClassHash(), loaded.getClassHash());
@@ -344,17 +335,17 @@ public class SerializationModuleIT {
 
 
     @Test
-    public void buildDataFragmentEEETest() throws InterruptedException {
+    public void publishDataFragmentEEETest() throws InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
-        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildDataFragment");
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","publishDataFragment");
         final AtomicBoolean done = new AtomicBoolean(false);
 
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("1")) {
                 assertEquals(2, split.length);
-                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -369,18 +360,17 @@ public class SerializationModuleIT {
     }
 
     @Test
-    public void buildDataFragment2EEETest() throws InterruptedException {
+    public void publishDataFragment2EEETest() throws InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
-        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildDataFragment");
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","publishDataFragment");
         final AtomicBoolean done = new AtomicBoolean(false);
 
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("2")) {
-                assertEquals(3, split.length);
-                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
-                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[2].length());
+                assertEquals(2, split.length);
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -397,17 +387,17 @@ public class SerializationModuleIT {
 
 
     @Test
-    public void buildClassFragmentEEETest() throws InterruptedException {
+    public void publishClassFragmentEEETest() throws InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
-        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildClassFragment");
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","publishClassFragment");
         final AtomicBoolean done = new AtomicBoolean(false);
 
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("1")) {
                 assertEquals(2, split.length);
-                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -423,17 +413,17 @@ public class SerializationModuleIT {
 
 
     @Test
-    public void buildClassFragment2EEETest() throws InterruptedException {
+    public void publishClassFragment2EEETest() throws InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
-        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildClassFragment");
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","publishClassFragment");
         final AtomicBoolean done = new AtomicBoolean(false);
 
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("2")) {
                 assertEquals(2, split.length);
-                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -448,18 +438,17 @@ public class SerializationModuleIT {
     }
 
     @Test
-    public void buildClassFragment3EEETest() throws InterruptedException {
+    public void publishClassFragment3EEETest() throws InterruptedException {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
-        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","buildClassFragment");
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","publishClassFragment");
         final AtomicBoolean done = new AtomicBoolean(false);
 
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("3")) {
-                assertEquals(3, split.length);
-                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[1].length());
-                assertEquals(Constants.TRANSACTION_SIZE_TRYTES, split[2].length());
+                assertEquals(2, split.length);
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -481,7 +470,7 @@ public class SerializationModuleIT {
         String randomClassHah = TestUtils.randomHash();
         DataFragment.Builder builder = new DataFragment.Builder(randomClassHah);
         builder.setData("DATA");
-        BundleFragment fragment = serializationModule.publishBundleFragment(builder.build());
+        BundleFragment fragment = serializationModule.publishBundleFragment(builder);
         String tx_hash = fragment.getHeadTransaction().hash;
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -510,7 +499,7 @@ public class SerializationModuleIT {
         String envId = "test0";
         final Environment environment = new Environment(envId);
         serializationModule.registerDataListener(randomClassHash, envId);
-        DataFragment fragment = new DataFragment.Builder(randomClassHash).setData("DATADATA").build();
+        DataFragment.Builder fragmentBuilder = new DataFragment.Builder(randomClassHash).setData("DATADATA");
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicBoolean done = new AtomicBoolean(false);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
@@ -532,7 +521,7 @@ public class SerializationModuleIT {
             }
         };
         ict.addListener(checker);
-        serializationModule.publishBundleFragment(fragment);
+        serializationModule.publishBundleFragment(fragmentBuilder);
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         if(throwableHolder.throwable!=null){
             fail(throwableHolder.throwable);

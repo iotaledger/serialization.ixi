@@ -34,15 +34,27 @@ public class SerializationModule extends IxiModule {
 
     /**
      * Input  : <classHash>;<data trytes>;<trunk_hash>;<branch_hash>;[<ref0_transaction_hash>;<ref1_transaction_hash>;...]
-     * Output : <fragment_tail_transaction_trytes>[;<body_transaction_trytes>*;<head_transaction_trytes>]
+     * Output : <fragment_head_hash>
      */
-    private final EEEFunction buildDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "buildDataFragment"));
+    private final EEEFunction publishDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishDataFragment"));
 
     /**
      * Input  : <data size decimal>;<trunk_hash>;<branch_hash>;[<classHash1>;<classHash2>;...]
-     * Output : <fragment_tail_transaction_trytes>[;<body_transaction_trytes>*;<head_transaction_trytes>]
+     * Output : <fragment_head_hash>
      */
-    private final EEEFunction buildClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "buildClassFragment"));
+    private final EEEFunction publishClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishClassFragment"));
+
+    /**
+     * Input  : <classHash>;<data trytes>;<trunk_hash>;<branch_hash>;[<ref0_transaction_hash>;<ref1_transaction_hash>;...]
+     * Output : <fragment_head_hash>
+     */
+    private final EEEFunction prepareDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "prepareDataFragment"));
+
+    /**
+     * Input  : <data size decimal>;<trunk_hash>;<branch_hash>;[<classHash1>;<classHash2>;...]
+     * Output : <fragment_head_hash>
+     */
+    private final EEEFunction prepareClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "prepareClassFragment"));
 
     /**
      * Input  : <data_fragment_head_transaction_hash>
@@ -82,8 +94,10 @@ public class SerializationModule extends IxiModule {
 
         //EEE
         ixi.addListener(computeClassHash);
-        ixi.addListener(buildDataFragment);
-        ixi.addListener(buildClassFragment);
+        ixi.addListener(publishDataFragment);
+        ixi.addListener(publishClassFragment);
+        ixi.addListener(prepareDataFragment);
+        ixi.addListener(prepareClassFragment);
         ixi.addListener(getData);
         ixi.addListener(getReferencedData);
         ixi.addListener(findFragmentsForClass);
@@ -95,8 +109,10 @@ public class SerializationModule extends IxiModule {
     @Override
     public void run() {
         new EEERequestHandler(computeClassHash, request -> processComputeClassHashRequest(request)).start();
-        new EEERequestHandler(buildDataFragment, request -> processBuildDataRequest(request)).start();
-        new EEERequestHandler(buildClassFragment, request -> processBuildClassRequest(request)).start();
+        new EEERequestHandler(publishDataFragment, request -> processPublishDataRequest(request)).start();
+        new EEERequestHandler(publishClassFragment, request -> processPublishClassRequest(request)).start();
+        new EEERequestHandler(prepareDataFragment, request -> processPrepareDataRequest(request)).start();
+        new EEERequestHandler(prepareClassFragment, request -> processPrepareClassRequest(request)).start();
         new EEERequestHandler(getData, request -> processGetDataRequest(request)).start();
         new EEERequestHandler(getReferencedData, request -> processGetReferencedDataRequest(request)).start();
         new EEERequestHandler(getReference, request -> processGetReferenceRequest(request)).start();
@@ -310,7 +326,20 @@ public class SerializationModule extends IxiModule {
     }
 
 
-    public <T extends BundleFragment> T publishBundleFragment(T fragment) {
+    public <F extends BundleFragment,T extends BundleFragment.Builder<F>> F publishBundleFragment(T fragmentBuilder) {
+        fragmentBuilder.setHeadFragment(true);
+        return submitFragment(fragmentBuilder);
+    }
+
+    public <F extends BundleFragment,T extends BundleFragment.Builder<F>> F prepareBundleFragment(T fragmentBuilder) {
+        return submitFragment(fragmentBuilder);
+    }
+
+    private <F extends BundleFragment,T extends BundleFragment.Builder<F>> F submitFragment(T fragmentBuilder) {
+        if(fragmentBuilder.getReferencedTrunk()==null || isBundleHead(fragmentBuilder.getReferencedTrunk())){
+            fragmentBuilder.setTailFragment(true);
+        }
+        F fragment = fragmentBuilder.build();
         Stack<Transaction> stack = new Stack<>();
         Transaction t = fragment.getHeadTransaction();
         stack.push(t);
@@ -324,6 +353,15 @@ public class SerializationModule extends IxiModule {
         return fragment;
     }
 
+    private boolean isBundleHead(String hash){
+        byte[] hashTrits = Trytes.toTrits(hash);
+        return isFlagSet(hashTrits, Constants.HashFlags.BUNDLE_HEAD_FLAG);
+    }
+
+    private static boolean isFlagSet(byte[] hashTrits, int position) {
+        assert hashTrits.length == Transaction.Field.TRUNK_HASH.tritLength;
+        return hashTrits[position] == 1;
+    }
     /**
      * Build a StructuredDataFragment.Prepared for data.
      * The StructuredDataFragment.Prepared can be used later to insert the dataFragment in Bundle.
@@ -374,7 +412,7 @@ public class SerializationModule extends IxiModule {
         request.submitReturn(ixi, ret);
     }
 
-    private void processBuildDataRequest(EEEFunction.Request request) {
+    private void processPublishDataRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
         String classHash = split[0];
@@ -389,15 +427,11 @@ public class SerializationModule extends IxiModule {
                 i++;
             }
         }
-        DataFragment.Prepared prepared = builder.prepare();
-        List<String> transactions = new ArrayList<>(prepared.fromTailToHead().size());
-        for (TransactionBuilder txBuilder : prepared.fromTailToHead()) {
-            transactions.add(txBuilder.build().decodeBytesToTrytes());
-        }
-        request.submitReturn(ixi, String.join(";", transactions));
+        DataFragment fragment = publishBundleFragment(builder);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
 
-    private void processBuildClassRequest(EEEFunction.Request request) {
+    private void processPublishClassRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
         String dataSize = split[0];
@@ -411,12 +445,45 @@ public class SerializationModule extends IxiModule {
                 i++;
             }
         }
-        ClassFragment.Prepared prepared = builder.prepare();
-        List<String> transactions = new ArrayList<>(prepared.fromTailToHead().size());
-        for (TransactionBuilder txBuilder : prepared.fromTailToHead()) {
-            transactions.add(txBuilder.build().decodeBytesToTrytes());
+        ClassFragment fragment = publishBundleFragment(builder);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+    }
+
+    private void processPrepareDataRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String classHash = split[0];
+        DataFragment.Builder builder = new DataFragment.Builder(classHash);
+        builder.setData(Trytes.toTrits(split[1]));
+        builder.setReferencedTrunk(split[2]);
+        builder.setReferencedBranch(split[3]);
+        if (split.length > 4) {
+            int i = 4;
+            while (i < split.length) {
+                builder.setReference(i - 4, split[i]);
+                i++;
+            }
         }
-        request.submitReturn(ixi, String.join(";", transactions));
+        DataFragment fragment = prepareBundleFragment(builder);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+    }
+
+    private void processPrepareClassRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String dataSize = split[0];
+        ClassFragment.Builder builder = new ClassFragment.Builder().withDataSize(Integer.valueOf(dataSize));
+        builder.setReferencedTrunk(split[1]);
+        builder.setReferencedBranch(split[2]);
+        if (split.length > 3) {
+            int i = 3;
+            while (i < split.length) {
+                builder.addReferencedClasshash(split[i]);
+                i++;
+            }
+        }
+        ClassFragment fragment = prepareBundleFragment(builder);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
 
     private void processGetDataRequest(EEEFunction.Request request) {

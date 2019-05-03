@@ -59,8 +59,8 @@ public abstract class BundleFragment {
     public abstract static class Builder<T> {
 
         private final LinkedList<TransactionBuilder> tailToHead = new LinkedList<>();
-        private boolean isHeadFragment = true;
-        private boolean isTailFragment = true;
+        private boolean isHeadFragment = false;
+        private boolean isTailFragment = false;
         private String referencedTrunk;
         private String referencedBranch;
 
@@ -73,6 +73,20 @@ public abstract class BundleFragment {
 
         public Builder<T> setReferencedTrunk(String referencedTrunk) {
             this.referencedTrunk = referencedTrunk;
+            return this;
+        }
+
+        public String getReferencedTrunk() {
+            return referencedTrunk;
+        }
+
+        public Builder<T> setHeadFragment(boolean headFragment) {
+            isHeadFragment = headFragment;
+            return this;
+        }
+
+        public Builder<T> setTailFragment(boolean tailFragment) {
+            isTailFragment = tailFragment;
             return this;
         }
 
