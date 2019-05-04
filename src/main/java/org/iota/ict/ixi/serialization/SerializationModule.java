@@ -11,10 +11,8 @@ import org.iota.ict.ixi.serialization.model.DataFragment;
 import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.transaction.Transaction;
-import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.network.gossip.GossipEvent;
 import org.iota.ict.network.gossip.GossipPreprocessor;
-import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,8 +88,6 @@ public class SerializationModule extends IxiModule {
     public SerializationModule(Ixi ixi) {
         super(ixi);
 
-        ixi.addListener(new BundleListener());
-
         //EEE
         ixi.addListener(computeClassHash);
         ixi.addListener(publishDataFragment);
@@ -118,6 +114,18 @@ public class SerializationModule extends IxiModule {
         new EEERequestHandler(getReference, this::processGetReferenceRequest).start();
         new EEERequestHandler(findFragmentsForClass, this::processFindFragmentsForClassRequest).start();
         new EEERequestHandler(findReferencing, this::processFindReferencingRequest).start();
+
+        GossipPreprocessor gossipPreprocessor = new GossipPreprocessor(ixi, -4000);
+        ixi.addListener(gossipPreprocessor);
+        GossipEventHandler gossipEventHandler = new GossipEventHandler();
+        try{
+            while(isRunning()){
+                GossipEvent gossipEvent = gossipPreprocessor.takeEffect();
+                gossipEventHandler.handleEvent(gossipEvent);
+            }
+        }catch (InterruptedException e){
+            LOGGER.info("Serialization.ixi interrupted...");
+        }
     }
 
     @Override
@@ -132,6 +140,11 @@ public class SerializationModule extends IxiModule {
         LOGGER.info("Serialization.ixi terminated.");
     }
 
+    @Override
+    public synchronized void terminate() {
+        Thread.currentThread().interrupt();
+        super.terminate();
+    }
 
     public ClassFragment buildClassFragment(ClassFragment.Builder builder) {
         if (builder == null) {
@@ -554,14 +567,9 @@ public class SerializationModule extends IxiModule {
      * When a metadataFragment is found: it is registered @SerializationModule.
      * When a structureData fragment is found and it's metadata fragment is available : the structured fragment is published.
      */
-    private class BundleListener extends GossipPreprocessor {
+    private class GossipEventHandler {
 
-        public BundleListener() {
-            super(ixi, -4000);
-        }
-
-        @Override
-        public void onReceive(GossipEvent effect) {
+        public void handleEvent(GossipEvent effect) {
             Transaction tx = effect.getTransaction();
             if (tx.isBundleHead) {
                 Bundle bundle = new Bundle(tx);
@@ -573,10 +581,10 @@ public class SerializationModule extends IxiModule {
             }
         }
 
-        @Override
-        public Environment getEnvironment() {
-            return Constants.Environments.GOSSIP_PREPROCESSOR_CHAIN;
-        }
+//        @Override
+//        public Environment getEnvironment() {
+//            return Constants.Environments.GOSSIP_PREPROCESSOR_CHAIN;
+//        }
 
 
         private void processBundle(Bundle bundle, Transaction startingTransaction) {
