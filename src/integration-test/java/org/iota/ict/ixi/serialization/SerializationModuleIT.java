@@ -11,6 +11,7 @@ import org.iota.ict.ixi.IxiModuleHolder;
 import org.iota.ict.ixi.IxiModuleInfo;
 import org.iota.ict.ixi.TestUtils;
 import org.iota.ict.ixi.serialization.model.*;
+import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
@@ -449,6 +450,143 @@ public class SerializationModuleIT {
             if(split[0].equals("3")) {
                 assertEquals(2, split.length);
                 assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"3;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+                +TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+
+
+
+    @Test
+    public void prepareDataFragmentEEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","prepareDataFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("1")) {
+                assertEquals(2, split.length);
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertFalse(Utils.isBundleHead(split[1]));
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"1;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+    @Test
+    public void prepareDataFragment2EEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","prepareDataFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("2")) {
+                assertEquals(2, split.length);
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertFalse(Utils.isBundleHead(split[1]));
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"2;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+                +TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(10000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+
+    @Test
+    public void prepareClassFragmentEEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","prepareClassFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("1")) {
+                assertEquals(2, split.length);
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertFalse(Utils.isBundleHead(split[1]));
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"1;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+
+    @Test
+    public void prepareClassFragment2EEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","prepareClassFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("2")) {
+                assertEquals(2, split.length);
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertFalse(Utils.isBundleHead(split[1]));
+                done.set(true);
+            }
+        }, countDownLatch, throwableHolder);
+
+        ict.submitEffect(env,"2;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
+        if(throwableHolder.throwable!=null){
+            fail(throwableHolder.throwable);
+        }
+    }
+
+    @Test
+    public void prepareClassFragment3EEETest() throws InterruptedException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        final ThrowableHolder throwableHolder = new ThrowableHolder();
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","prepareClassFragment");
+        final AtomicBoolean done = new AtomicBoolean(false);
+
+        registerReturnHandler(env,effect -> {
+            String[] split = effect.toString().split(";");
+            if(split[0].equals("3")) {
+                assertEquals(2, split.length);
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertFalse(Utils.isBundleHead(split[1]));
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);

@@ -108,16 +108,16 @@ public class SerializationModule extends IxiModule {
 
     @Override
     public void run() {
-        new EEERequestHandler(computeClassHash, request -> processComputeClassHashRequest(request)).start();
-        new EEERequestHandler(publishDataFragment, request -> processPublishDataRequest(request)).start();
-        new EEERequestHandler(publishClassFragment, request -> processPublishClassRequest(request)).start();
-        new EEERequestHandler(prepareDataFragment, request -> processPrepareDataRequest(request)).start();
-        new EEERequestHandler(prepareClassFragment, request -> processPrepareClassRequest(request)).start();
-        new EEERequestHandler(getData, request -> processGetDataRequest(request)).start();
-        new EEERequestHandler(getReferencedData, request -> processGetReferencedDataRequest(request)).start();
-        new EEERequestHandler(getReference, request -> processGetReferenceRequest(request)).start();
-        new EEERequestHandler(findFragmentsForClass, request -> processFindFragmentsForClassRequest(request)).start();
-        new EEERequestHandler(findReferencing, request -> processFindReferencingRequest(request)).start();
+        new EEERequestHandler(computeClassHash, this::processComputeClassHashRequest).start();
+        new EEERequestHandler(publishDataFragment, this::processPublishDataRequest).start();
+        new EEERequestHandler(publishClassFragment, this::processPublishClassRequest).start();
+        new EEERequestHandler(prepareDataFragment, this::processPrepareDataRequest).start();
+        new EEERequestHandler(prepareClassFragment, this::processPrepareClassRequest).start();
+        new EEERequestHandler(getData, this::processGetDataRequest).start();
+        new EEERequestHandler(getReferencedData, this::processGetReferencedDataRequest).start();
+        new EEERequestHandler(getReference, this::processGetReferenceRequest).start();
+        new EEERequestHandler(findFragmentsForClass, this::processFindFragmentsForClassRequest).start();
+        new EEERequestHandler(findReferencing, this::processFindReferencingRequest).start();
     }
 
     @Override
@@ -207,7 +207,7 @@ public class SerializationModule extends IxiModule {
     }
 
     /**
-     * @param classHash
+     * @param classHash searched classHash
      * @return all DataFragment for a given classHash
      */
     public Set<DataFragment> findDataFragmentForClassHash(String classHash) {
@@ -336,7 +336,7 @@ public class SerializationModule extends IxiModule {
     }
 
     private <F extends BundleFragment,T extends BundleFragment.Builder<F>> F submitFragment(T fragmentBuilder) {
-        if(fragmentBuilder.getReferencedTrunk()==null || isBundleHead(fragmentBuilder.getReferencedTrunk())){
+        if(fragmentBuilder.getReferencedTrunk()==null || Utils.isBundleHead(fragmentBuilder.getReferencedTrunk())){
             fragmentBuilder.setTailFragment(true);
         }
         F fragment = fragmentBuilder.build();
@@ -353,15 +353,6 @@ public class SerializationModule extends IxiModule {
         return fragment;
     }
 
-    private boolean isBundleHead(String hash){
-        byte[] hashTrits = Trytes.toTrits(hash);
-        return isFlagSet(hashTrits, Constants.HashFlags.BUNDLE_HEAD_FLAG);
-    }
-
-    private static boolean isFlagSet(byte[] hashTrits, int position) {
-        assert hashTrits.length == Transaction.Field.TRUNK_HASH.tritLength;
-        return hashTrits[position] == 1;
-    }
     /**
      * Build a StructuredDataFragment.Prepared for data.
      * The StructuredDataFragment.Prepared can be used later to insert the dataFragment in Bundle.
@@ -634,7 +625,7 @@ public class SerializationModule extends IxiModule {
                     return false;
                 }
             }
-            return t != null && DataFragment.isTail(t);
+            return DataFragment.isTail(t);
         }
 
         private boolean isFragmentHead(Transaction transaction) {
@@ -643,12 +634,8 @@ public class SerializationModule extends IxiModule {
 
         private Transaction processClassFragment(Transaction fragmentHead) {
             assert ClassFragment.isHead(fragmentHead);
-            Transaction t = fragmentHead;
-            ClassFragment classFragment = new ClassFragment(t);
-            if (classFragment != null) {
-                return classFragment.getTailTransaction();
-            }
-            return t;
+            ClassFragment classFragment = new ClassFragment(fragmentHead);
+            return classFragment.getTailTransaction();
         }
 
         private Transaction processDataFragment(Transaction fragmentHead) {

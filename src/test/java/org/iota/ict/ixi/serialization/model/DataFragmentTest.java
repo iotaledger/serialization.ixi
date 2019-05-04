@@ -1,6 +1,7 @@
 package org.iota.ict.ixi.serialization.model;
 
 import org.iota.ict.ixi.TestUtils;
+import org.iota.ict.utils.Trytes;
 import org.junit.jupiter.api.Test;
 
 import static org.iota.ict.utils.Trytes.NULL_HASH;
@@ -68,5 +69,22 @@ public class DataFragmentTest {
         assertEquals(ref1, dataFragment.getReference(2));
         assertEquals(NULL_HASH, dataFragment.getReference(1));
         assertEquals(classFragment.getClassHash(), dataFragment.getClassHash());
+    }
+
+    @Test
+    public void buildDataFragmentRemoveRefTest(){
+        ClassFragment classFragment = new ClassFragment.Builder().addReferencedClasshash(TestUtils.random(81)).build();
+        DataFragment.Builder builder = new DataFragment.Builder(classFragment);
+        String ref0 = TestUtils.randomHash();
+        builder.setReference(0, ref0);
+        builder.setReference(0, (DataFragment) null);
+        DataFragment dataFragment = builder.build();
+        assertEquals(Trytes.NULL_HASH, dataFragment.getHeadTransaction().extraDataDigest());
+        assertEquals(Trytes.NULL_HASH, dataFragment.getReference(0));
+        assertEquals(classFragment.getClassHash(), dataFragment.getHeadTransaction().address());
+        assertTrue(dataFragment.hasHeadFlag(dataFragment.getHeadTransaction()));
+        assertTrue(dataFragment.hasHeadFlag(dataFragment.getTailTransaction()));
+        assertTrue(dataFragment.hasTailFlag(dataFragment.getHeadTransaction()));
+        assertTrue(dataFragment.hasTailFlag(dataFragment.getTailTransaction()));
     }
 }

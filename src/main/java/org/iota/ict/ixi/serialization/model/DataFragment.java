@@ -13,11 +13,12 @@ import java.util.Map;
 
 import static org.iota.ict.utils.Trytes.NULL_HASH;
 
+@SuppressWarnings("WeakerAccess")
 public class DataFragment extends BundleFragment {
 
     private static final int LENGTH_OF_SIZE_FIELD = 27;
 
-    private int dataSizeInTrits = 0;
+    private int dataSizeInTrits;
 
     public DataFragment(Transaction headTransaction){
         super(headTransaction);
@@ -197,7 +198,4 @@ public class DataFragment extends BundleFragment {
         boolean match(DataFragment dataFragment);
     }
 
-    public interface Listener {
-        void onData(DataFragment dataFragment);
-    }
 }

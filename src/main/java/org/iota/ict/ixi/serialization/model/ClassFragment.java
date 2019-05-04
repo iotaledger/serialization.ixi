@@ -10,6 +10,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("WeakerAccess")
 public class ClassFragment extends BundleFragment {
 
     private static final int LENGTH_OF_SIZE_FIELD = 27;
@@ -75,16 +76,15 @@ public class ClassFragment extends BundleFragment {
     }
 
     public static boolean isTail(Transaction transaction) {
-        return Trytes.toTrits(transaction.tag())[3] == 1;
+        return transaction!=null && Trytes.toTrits(transaction.tag())[3] == 1;
     }
 
     public static boolean isHead(Transaction transaction) {
-        return Trytes.toTrits(transaction.tag())[4] == 1;
+        return transaction!=null && Trytes.toTrits(transaction.tag())[4] == 1;
     }
 
     public String getClassHashForReference(int index) {
         index++;
-        int i = 0;
         Transaction tx = getHeadTransaction();
         while(index >= 2){
             tx = tx.getTrunk();

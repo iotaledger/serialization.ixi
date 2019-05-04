@@ -2,6 +2,7 @@ package org.iota.ict.ixi.serialization.util;
 
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
+import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigDecimal;
@@ -69,4 +70,13 @@ public class Utils {
         return ret;
     }
 
+    public static boolean isBundleHead(String hash){
+        byte[] hashTrits = Trytes.toTrits(hash);
+        return isFlagSet(hashTrits, Constants.HashFlags.BUNDLE_HEAD_FLAG);
+    }
+
+    private static boolean isFlagSet(byte[] hashTrits, int position) {
+        assert hashTrits.length == Transaction.Field.TRUNK_HASH.tritLength;
+        return hashTrits[position] == 1;
+    }
 }
