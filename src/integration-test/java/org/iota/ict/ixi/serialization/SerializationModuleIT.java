@@ -1,6 +1,5 @@
 package org.iota.ict.ixi.serialization;
 
-import com.iota.curl.IotaCurlHash;
 import org.iota.ict.Ict;
 import org.iota.ict.eee.EffectListener;
 import org.iota.ict.eee.Environment;
@@ -16,15 +15,12 @@ import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
-import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 import org.iota.ict.utils.properties.Properties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.opentest4j.AssertionFailedError;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -259,7 +255,7 @@ public class SerializationModuleIT {
     private Bundle createClassBundle() {
         ClassFragment.Builder builder = new ClassFragment.Builder();
         builder.withDataSize(33);
-        ClassFragment.Prepared preparedClass = serializationModule.prepareMetadata(builder);
+        ClassFragment.Prepared preparedClass = serializationModule.prepareClassFragment(builder);
         assertEquals(1,preparedClass.fromTailToHead().size());
 
         BundleBuilder bundleBuilder = new BundleBuilder();

@@ -367,8 +367,8 @@ public class SerializationModule extends IxiModule {
     }
 
     /**
-     * Build a StructuredDataFragment.Prepared for data.
-     * The StructuredDataFragment.Prepared can be used later to insert the dataFragment in Bundle.
+     * Build a DataFragment.Prepared for data.
+     * The DataFragment.Prepared can be used later to insert the dataFragment in Bundle.
      *
      * @return a preparedDataFragment.
      */
@@ -377,12 +377,12 @@ public class SerializationModule extends IxiModule {
     }
 
     /**
-     * Build a MetadataFragment.Prepared from builder.
-     * The MetadataFragment.Prepared can be used later to insert the metadataFragment in a Bundle.
+     * Build a ClassFragment.Prepared from builder.
+     * The ClassFragment.Prepared can be used later to insert the classFragment in a Bundle.
      *
-     * @return a prepared MetadataFragment.
+     * @return a prepared ClassFragment.
      */
-    public ClassFragment.Prepared prepareMetadata(ClassFragment.Builder builder) {
+    public ClassFragment.Prepared prepareClassFragment(ClassFragment.Builder builder) {
         return builder.prepare();
     }
 
@@ -563,9 +563,7 @@ public class SerializationModule extends IxiModule {
 
 
     /**
-     * Receive Bundles and inspect them to find metadata fragments or structured data fragments.
-     * When a metadataFragment is found: it is registered @SerializationModule.
-     * When a structureData fragment is found and it's metadata fragment is available : the structured fragment is published.
+     * Receive Bundles and inspect them to find class fragments or data fragments.
      */
     private class GossipEventHandler {
 

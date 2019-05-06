@@ -4,7 +4,7 @@ Serialization.ixi provides a framework to publish data referencing other pieces 
 
 To do that we define two types of BundleFragment :
 
-The ClassFragment representing the metadata of a DataFragment. The DataFragment to store the data and the references 
+The ClassFragment represent the metadata of a DataFragment. The DataFragment to store the data and the references 
 to other pieces of data.
 
 The data part of a DataFragment is stored in it's message field. (maybe be on multiple transactions when required).
@@ -60,70 +60,88 @@ Searching for all DataFragments referencing a specific DataFragment can also be 
 ### API
 
     // FACTORY
- 
-    public ClassFragment buildClassFragment(ClassFragment.Builder builder);
+    
     public DataFragment buildDataFragment(DataFragment.Builder builder);
+    public ClassFragment buildClassFragment(ClassFragment.Builder builder);
+    
     /**
-     * Build a StructuredDataFragment.Prepared for data.
-     * The StructuredDataFragment.Prepared can be used later to insert the dataFragment in Bundle.
-     * @return a preparedDataFragment.
-     */
+    * Build a DataFragment.Prepared for data.
+    * The DataFragment.Prepared can be used later to insert the dataFragment in Bundle.
+    *
+    * @return a prepared DataFragment.
+    */
     public DataFragment.Prepared prepare(DataFragment.Builder builder);
+    
     /**
-     * Build a ClassFragment.Prepared from builder.
-     * The ClassFragment.Prepared can be used later to insert the classFragment in a Bundle.
-     * @return a prepared ClassFragment.
-     */
-    public ClassFragment.Prepared prepare(ClassFragment.Builder builder);
+    * Build a ClassFragment.Prepared from builder.
+    * The ClassFragment.Prepared can be used later to insert the classFragment in a Bundle.
+    *
+    * @return a prepared ClassFragment.
+    */
+    public ClassFragment.Prepared prepareClassFragment(ClassFragment.Builder builder);
+    
+    public <F extends BundleFragment,T extends BundleFragment.Builder<F>> F publishBundleFragment(T fragmentBuilder);
+    
+    public <F extends BundleFragment,T extends BundleFragment.Builder<F>> F prepareBundleFragment(T fragmentBuilder);
     
     //SEARCH
     
     /**
-     * @param classHash
-     * @return all DataFragment for a given classHash
-     */
+    * @param classHash searched classHash
+    * @return all DataFragment for a given classHash
+    */
     public Set<DataFragment> findDataFragmentForClassHash(String classHash);
     
     /**
-     * @param classHash the classHash of the searched fragments
-     * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced
-     * @param index index of the reference
-     * @return all DataFragment referencing *referencedTransactionHash* from reference at index *index*
-     */
+    * @param classHash                 the classHash of the searched fragments
+    * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced
+    * @param index                     index of the reference
+    * @return all DataFragment referencing *referencedTransactionHash* from reference at index *index*
+    */
     public Set<DataFragment> findDataFragmentReferencing(String classHash, String referencedTransactionHash, int index);
-
     /**
-     * @return the ClassFragment with head transaction identified by transactionHash,
-     * or null if the transaction is not the head of a valid ClassFragment.
-     * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
-     */
+    * @return the ClassFragment with head transaction identified by transactionHash,
+    * or null if the transaction is not the head of a valid ClassFragment.
+    * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
+    */
     public ClassFragment loadClassFragment(String transactionHash);
-
+    
     public ClassFragment loadClassFragmentForClassHash(String classHash);
     
     /**
-     * @return the DataFragment with head transaction identified by transactionHash,
-     * or null if the transaction is not the head of a DataFragment.
-     * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
-     */
+    * @return the DataFragment with head transaction identified by transactionHash,
+    * or null if the transaction is not the head of a DataFragment.
+    * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
+    */
     public DataFragment loadDataFragment(String transactionHash);
-
-    //ACCESSORS
+    
+    public DataFragment getFragmentAtIndex(DataFragment fragment, int index);
     
     public byte[] getData(DataFragment dataFragment);
-
+    
     public byte[] getData(String dataFragmentTransactionHash);
-
+    
+    /**
+    * @return the value in trytes of key at index
+    * @throws IndexOutOfBoundsException when index is invalid
+    */
     public byte[] getDataAtIndex(DataFragment dataFragment, int index);
-        
-    public DataFragment getDataFragment(DataFragment dataFragment, int index);
     
     //EEE
     
     /**
-     * Request submission of effect when dataFragment with a particular classHash is received.
-     *
-     * @param classHash : classHash to watch
-     * @param environmentId : environment where effect will be sent
-     */
+    * Request submission of effect when dataFragment with a particular classHash is received.
+    *
+    * @param environmentId : environment where effect will be sent
+    */
     public void registerDataListener(String classHash, String environmentId);
+    
+    
+    /**
+    * Request submission of effect when dataFragment with a particular classHash is received.
+    *
+    * @param matcher  : a filter for fragment of interest
+    * @param environmentId : environment where effect will be sent
+    */
+    public void registerDataListener(DataFragment.Filter matcher, String environmentId);
+    
