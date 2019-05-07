@@ -292,7 +292,7 @@ public class SerializationModuleIT {
                 String[] split = effect.toString().split(";");
                 if(split[0].equals("1")) {
                     assertEquals(2, split.length);
-                    assertEquals("9ZHHQLPWVSDOJIOROTRHQNGMLMZAWISFMYSFSECRCJBZRHNZJCFWGBASZITSZAGMSQRIMZSJGGCLLWI9Y", split[1]);
+                    assertEquals(81, split[1].length());
                     done.set(true);
                 }
         }, countDownLatch, throwableHolder);
@@ -321,7 +321,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"2;25;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(200, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -347,7 +347,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -372,7 +372,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+        ict.submitEffect(env,"2;DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
                 +TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(10000, TimeUnit.MILLISECONDS);
@@ -399,7 +399,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;25;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -425,7 +425,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"2;25;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -450,7 +450,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"3;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+        ict.submitEffect(env,"3;25;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"
                 +TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
@@ -480,7 +480,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -506,7 +506,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+        ict.submitEffect(env,"2;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"
                 +TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(10000, TimeUnit.MILLISECONDS);
@@ -534,7 +534,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;25;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -561,7 +561,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"2;25;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -587,7 +587,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"3;25;"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+        ict.submitEffect(env,"3;25;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"
                 +TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);

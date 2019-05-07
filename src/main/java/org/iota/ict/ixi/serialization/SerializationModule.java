@@ -187,7 +187,7 @@ public class SerializationModule extends IxiModule {
             throw new IllegalArgumentException("searched classHash cannot be null");
         }
         //TODO optimize me
-        Set<Transaction> transactions = ixi.findTransactionsByAddress(ClassFragment.METACLASS_HASH);
+        Set<Transaction> transactions = ixi.findTransactionsByAddress(classHash);
         for (Transaction tx : transactions) {
             try {
                 ClassFragment classFragment = new ClassFragment(tx);

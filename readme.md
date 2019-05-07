@@ -28,13 +28,7 @@ The message of ClassFragment contains 54 meaningful trits:
  - 27 first trits encode the reference-count (integer)
  - 27 next trits encode the data-size (integer)
 
-We define the classHash as the hash of the concatenation of the 54 trits of the message and the address and 
-extradata-digest fields of the classFragment.
-
-We define the MetaclassHash as the hash of the integer 54: ISHGAHAOUEPGOUT9BEAAAEWFQFFKUR9W9EHLY9CHPQJPJTJARSAWEHSJYWCKTADZCBKRBKOVMZYDRIXQW
-This denotes kind of "genesis" for the classes DAG.
-
-Address field of the head transaction of a ClassFragment is reserved to store the MetaclassHash.  
+Address field of the head transaction of a ClassFragment is reserved to store ??? (ClassHash or NullHash ?).  
 Extradata-digest and address fields of a ClassFragment store the classHash of referenced fragments.
 A reference to an arbitrary transaction is denoted by the NULL_HASH. This allow the creation of "chain" of DataFragment, but also referencing non DataFragment.
 

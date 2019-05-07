@@ -1,5 +1,6 @@
 package org.iota.ict.ixi;
 
+import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 
@@ -27,6 +28,14 @@ public class TestUtils {
 
     public static String randomHash(){
         return random(81);
+    }
+
+    public static String randomBundleHeadHash(){
+        String ret = null;
+        while(ret==null || !Utils.isBundleHead(ret)){
+            ret = randomHash();
+        }
+        return ret;
     }
 
     public static String randomValidTransactionHash(){
