@@ -23,6 +23,7 @@ import java.util.*;
 public class SerializationModule extends IxiModule {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SerializationModule.class);
+    private Persistence persistence = new Persistence();
 
     /**
      * Input  : <data size decimal>;[<classHash1>;<classHash2>;...]
@@ -137,13 +138,8 @@ public class SerializationModule extends IxiModule {
     @Override
     public void onTerminate() {
         super.onTerminate();
+        runningThread.interrupt();
         LOGGER.info("Serialization.ixi terminated.");
-    }
-
-    @Override
-    public synchronized void terminate() {
-        Thread.currentThread().interrupt();
-        super.terminate();
     }
 
     public ClassFragment buildClassFragment(ClassFragment.Builder builder) {
@@ -186,17 +182,7 @@ public class SerializationModule extends IxiModule {
         if (classHash == null || classHash.equals(Trytes.NULL_HASH)) {
             throw new IllegalArgumentException("searched classHash cannot be null");
         }
-        //TODO optimize me
-        Set<Transaction> transactions = ixi.findTransactionsByAddress(classHash);
-        for (Transaction tx : transactions) {
-            try {
-                ClassFragment classFragment = new ClassFragment(tx);
-                if (classFragment.getClassHash().equals(classHash)) return classFragment;
-            } catch (IllegalArgumentException e) {
-                //not a valid ClassFragment
-            }
-        }
-        return null;
+        return persistence.search(classHash);
     }
 
     /**
@@ -304,8 +290,6 @@ public class SerializationModule extends IxiModule {
         }
         return null;
     }
-
-    //TODO : review listeners mechanics
 
     /**
      * Request submission of effect when dataFragment with a particular classHash is received.
@@ -417,25 +401,18 @@ public class SerializationModule extends IxiModule {
     }
 
     private void processPublishDataRequest(EEEFunction.Request request) {
-        String argument = request.argument;
-        String[] split = argument.split(";");
-        String classHash = split[0];
-        DataFragment.Builder builder = new DataFragment.Builder(classHash);
-        builder.setData(Trytes.toTrits(split[1]));
-        builder.setReferencedTrunk(split[2]);
-        builder.setReferencedBranch(split[3]);
-        if (split.length > 4) {
-            int i = 4;
-            while (i < split.length) {
-                builder.setReference(i - 4, split[i]);
-                i++;
-            }
-        }
+        DataFragment.Builder builder = dataFragmentBuilderFromRequest(request);
         DataFragment fragment = publishBundleFragment(builder);
         request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
 
     private void processPublishClassRequest(EEEFunction.Request request) {
+        ClassFragment.Builder builder = classFragmentBuilderFromRequest(request);
+        ClassFragment fragment = publishBundleFragment(builder);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+    }
+
+    private ClassFragment.Builder classFragmentBuilderFromRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
         String dataSize = split[0];
@@ -449,11 +426,16 @@ public class SerializationModule extends IxiModule {
                 i++;
             }
         }
-        ClassFragment fragment = publishBundleFragment(builder);
-        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+        return builder;
     }
 
     private void processPrepareDataRequest(EEEFunction.Request request) {
+        DataFragment.Builder builder = dataFragmentBuilderFromRequest(request);
+        DataFragment fragment = prepareBundleFragment(builder);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+    }
+
+    private DataFragment.Builder dataFragmentBuilderFromRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
         String classHash = split[0];
@@ -468,24 +450,11 @@ public class SerializationModule extends IxiModule {
                 i++;
             }
         }
-        DataFragment fragment = prepareBundleFragment(builder);
-        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+        return builder;
     }
 
     private void processPrepareClassRequest(EEEFunction.Request request) {
-        String argument = request.argument;
-        String[] split = argument.split(";");
-        String dataSize = split[0];
-        ClassFragment.Builder builder = new ClassFragment.Builder().withDataSize(Integer.valueOf(dataSize));
-        builder.setReferencedTrunk(split[1]);
-        builder.setReferencedBranch(split[2]);
-        if (split.length > 3) {
-            int i = 3;
-            while (i < split.length) {
-                builder.addReferencedClasshash(split[i]);
-                i++;
-            }
-        }
+        ClassFragment.Builder builder = classFragmentBuilderFromRequest(request);
         ClassFragment fragment = prepareBundleFragment(builder);
         request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
@@ -579,12 +548,6 @@ public class SerializationModule extends IxiModule {
             }
         }
 
-//        @Override
-//        public Environment getEnvironment() {
-//            return Constants.Environments.GOSSIP_PREPROCESSOR_CHAIN;
-//        }
-
-
         private void processBundle(Bundle bundle, Transaction startingTransaction) {
             Transaction t = startingTransaction == null ? bundle.getHead() : startingTransaction;
 
@@ -641,6 +604,7 @@ public class SerializationModule extends IxiModule {
         private Transaction processClassFragment(Transaction fragmentHead) {
             assert ClassFragment.isHead(fragmentHead);
             ClassFragment classFragment = new ClassFragment(fragmentHead);
+            persistence.persist(classFragment);
             return classFragment.getTailTransaction();
         }
 
@@ -652,6 +616,18 @@ public class SerializationModule extends IxiModule {
     }
 
 
+    private class Persistence {
+        private Map<String, ClassFragment> classFragments = new HashMap<>();
+
+        public void persist(ClassFragment classFragment){
+            classFragments.put(classFragment.getClassHash(), classFragment);
+        }
+
+        public ClassFragment search(String classHash){
+            ClassFragment fragment = classFragments.get(classHash);
+            return fragment;
+        }
+    }
     private class EEERequestHandler extends Thread {
 
         EEEHandler handler;

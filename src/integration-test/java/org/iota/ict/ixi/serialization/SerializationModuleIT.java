@@ -64,7 +64,7 @@ public class SerializationModuleIT {
         for(int i = txs.size()-1; i>=0 ;i--){
             ict.submit(txs.get(i));
         }
-        Thread.sleep(50);
+        safeSleep(50);
         Transaction nonHead = txs.get(0);
         assertThrows(IllegalArgumentException.class,() -> serializationModule.loadDataFragment(nonHead.hash));
     }
@@ -77,7 +77,7 @@ public class SerializationModuleIT {
         for(int i = txs.size()-1; i>=0 ;i--){
             ict.submit(txs.get(i));
         }
-        Thread.sleep(50);
+        safeSleep(50);
 
         Transaction nonHead = txs.get(0);
         ClassFragment classFragment = serializationModule.loadClassFragment(nonHead.hash);
@@ -156,7 +156,7 @@ public class SerializationModuleIT {
         for(int i = txs.size()-1; i>=0 ;i--){
             ict.submit(txs.get(i));
         }
-        Thread.sleep(50);
+        safeSleep(50);
         return bundle.getHead();
     }
 
@@ -188,7 +188,7 @@ public class SerializationModuleIT {
     }
 
     @Test
-    public void loadClassFragmentFromClassHashTest(){
+    public void loadClassFragmentFromClassHashTest() throws InterruptedException {
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragmentForClassHash(null));
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragmentForClassHash(Trytes.NULL_HASH));
         assertNull(serializationModule.loadClassFragmentForClassHash(TestUtils.randomHash()));
@@ -196,7 +196,7 @@ public class SerializationModuleIT {
         classFragmentBuilder.withDataSize(99);
         classFragmentBuilder.addReferencedClasshash(TestUtils.randomHash());
         ClassFragment classFragment = serializationModule.publishBundleFragment(classFragmentBuilder);
-
+        safeSleep(100);
         ClassFragment reloadedClassFragment = serializationModule.loadClassFragmentForClassHash(classFragment.getClassHash());
         assertEquals(classFragment.getClassHash(),reloadedClassFragment.getClassHash());
     }
@@ -347,7 +347,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;"+TestUtils.randomHash()+";DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -372,7 +372,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+        ict.submitEffect(env,"2;"+TestUtils.randomHash()+";DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
                 +TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(10000, TimeUnit.MILLISECONDS);
@@ -689,5 +689,13 @@ public class SerializationModuleIT {
 
     private static class ThrowableHolder {
         Throwable throwable;
+    }
+
+    private void safeSleep(long ms){
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            //ignore
+        }
     }
 }

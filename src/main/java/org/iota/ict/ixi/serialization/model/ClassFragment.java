@@ -137,40 +137,38 @@ public class ClassFragment extends BundleFragment {
             int transactionsRequired = Math.max(transactionsRequiredForData, transactionsRequiredForReferences);
 
             int currentRefIndex = 0;
-            StringBuilder sb = new StringBuilder();
+            //StringBuilder sb = new StringBuilder();
 
             TransactionBuilder builder = new TransactionBuilder();
             for(int i=0;i<transactionsRequired;i++){
                 if(i==0) {
                     StringBuilder stringBuilder = new StringBuilder();
-                    //sb.append(Trytes.fromNumber(BigInteger.valueOf((LENGTH_OF_SIZE_FIELD+LENGTH_OF_REFCOUNT_FIELD)/3),LENGTH_OF_SIZE_FIELD/3));
                     stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(dataSize),LENGTH_OF_SIZE_FIELD/3));
                     stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(references.size()),LENGTH_OF_REFCOUNT_FIELD/3));
                     builder.signatureFragments = stringBuilder.toString();
                     Utils.padRightSignature(builder);
-                    sb.append(Trytes.fromNumber(BigInteger.valueOf(dataSize),LENGTH_OF_SIZE_FIELD/3));
+//                    sb.append(Trytes.fromNumber(BigInteger.valueOf(dataSize),LENGTH_OF_SIZE_FIELD/3));
                 }
 
                 if(i>0) {
                     if (currentRefIndex < references.size()) {
                         String address = references.get(currentRefIndex++);
                         builder.address = address;
-                        sb.append(builder.address);
+//                        sb.append(builder.address);
                     }
                 }
                 if(currentRefIndex < references.size()) {
                     String extra = references.get(currentRefIndex++);
                     builder.extraDataDigest = extra;
-                    sb.append(builder.extraDataDigest);
+//                    sb.append(builder.extraDataDigest);
                 }
 
                 addFirst(builder);
                 builder = new TransactionBuilder();
             }
 
-            //TODO : decide
-            getHead().address = IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_BUNDLE_FRAGMANT_HASH);
-            //getHead().address = Trytes.NULL_HASH;
+//            getHead().address = IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_BUNDLE_FRAGMANT_HASH);
+            getHead().address = Trytes.NULL_HASH;
         }
 
         private void setTags(){
