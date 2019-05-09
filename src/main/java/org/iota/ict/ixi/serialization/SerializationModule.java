@@ -26,31 +26,40 @@ public class SerializationModule extends IxiModule {
     private Persistence persistence = new Persistence();
 
     /**
-     * Input  : <data size decimal>;[<classHash1>;<classHash2>;...]
+     * This function will auto-discrimate between attribute (integer) or classHash (trytes)
+     * Input  : <attribute_size or referenced_classhash>;[<attribute_size or referenced_classhash>;]*
      * Output : <ClassHash trytes>
      */
     private final EEEFunction computeClassHash = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "computeClassHash"));
 
-    /**
-     * Input  : <classHash>;<data trytes>;<trunk_hash>;<branch_hash>;[<ref0_transaction_hash>;<ref1_transaction_hash>;...]
+    /*
+     * <ATTRIB_OR_REFERENCE> is a space separated string composed of 3 tokens.
+     *                       token 0: 'A' or 'R', to indicate if it is an attribute or a reference
+     *                       token 1: index, the index of the attribute or reference
+     *                       token 2: trytes, either the data or the 81 trytes of the reference)
+     * Input  : <classHash>;<trunk_hash>;<branch_hash>;<ATTRIB_OR_REFERENCE>[;<ATTRIB_OR_REFERENCE>]*
      * Output : <fragment_head_hash>
      */
     private final EEEFunction publishDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishDataFragment"));
 
     /**
-     * Input  : <data size decimal>;<trunk_hash>;<branch_hash>;[<classHash1>;<classHash2>;...]
+     * Input  : <trunk_hash>;<branch_hash>;<attribute_size or referenced_classhash>;[<attribute_size or referenced_classhash>;]*
      * Output : <fragment_head_hash>
      */
     private final EEEFunction publishClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishClassFragment"));
 
     /**
-     * Input  : <classHash>;<data trytes>;<trunk_hash>;<branch_hash>;[<ref0_transaction_hash>;<ref1_transaction_hash>;...]
+     * <ATTRIB_OR_REFERENCE> is a space separated string composed of 3 tokens.
+     *                       token 0: 'A' or 'R', to indicate if it is an attribute or a reference
+     *                       token 1: index, the index of the attribute or reference
+     *                       token 2: trytes, either the data or the 81 trytes of the reference)
+     * Input  : <classHash>;<trunk_hash>;<branch_hash>;<ATTRIB_OR_REFERENCE>[;<ATTRIB_OR_REFERENCE>]*
      * Output : <fragment_head_hash>
      */
     private final EEEFunction prepareDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "prepareDataFragment"));
 
     /**
-     * Input  : <data size decimal>;<trunk_hash>;<branch_hash>;[<classHash1>;<classHash2>;...]
+     * Input  : <trunk_hash>;<branch_hash>;<attribute_size or referenced_classhash>;[<attribute_size or referenced_classhash>;]*
      * Output : <fragment_head_hash>
      */
     private final EEEFunction prepareClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "prepareClassFragment"));
@@ -96,6 +105,7 @@ public class SerializationModule extends IxiModule {
         ixi.addListener(prepareDataFragment);
         ixi.addListener(prepareClassFragment);
         ixi.addListener(getAttribute);
+        ixi.addListener(getReference);
         ixi.addListener(getReferencedAttribute);
         ixi.addListener(findFragmentsForClass);
         ixi.addListener(findReferencing);
@@ -372,12 +382,16 @@ public class SerializationModule extends IxiModule {
     private void processComputeClassHashRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        String dataSize = split[0];
-        ClassFragment.Builder builder = new ClassFragment.Builder().withDataSize(Integer.valueOf(dataSize));
-        if (split.length > 1) {
-            String[] references = argument.substring(argument.indexOf(";") + 1).split(";");
-            for (String s : references) {
+        ClassFragment.Builder builder = new ClassFragment.Builder();
+        for(String s:split){
+            if(Trytes.NULL_HASH.equals(s)){
                 builder.addReferencedClasshash(s);
+            }else {
+                try {
+                    builder.addAttribute(Integer.valueOf(s));
+                } catch (NumberFormatException e) {
+                    builder.addReferencedClasshash(s);
+                }
             }
         }
         String ret = builder.build().getClassHash();
@@ -386,7 +400,10 @@ public class SerializationModule extends IxiModule {
 
     private void processPublishDataRequest(EEEFunction.Request request) {
         DataFragment.Builder builder = dataFragmentBuilderFromRequest(request);
-        if(builder==null) request.submitReturn(ixi,"");
+        if(builder==null) {
+            request.submitReturn(ixi,"");
+            return;
+        }
         DataFragment fragment = publishBundleFragment(builder);
         request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
@@ -401,14 +418,22 @@ public class SerializationModule extends IxiModule {
     private ClassFragment.Builder classFragmentBuilderFromRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        String dataSize = split[0];
-        ClassFragment.Builder builder = new ClassFragment.Builder().withDataSize(Integer.valueOf(dataSize));
-        builder.setReferencedTrunk(split[1]);
-        builder.setReferencedBranch(split[2]);
-        if (split.length > 3) {
+        ClassFragment.Builder builder = new ClassFragment.Builder();
+        builder.setReferencedTrunk(split[0]);
+        builder.setReferencedBranch(split[1]);
+        if (split.length > 2) {
             int i = 3;
             while (i < split.length) {
-                builder.addReferencedClasshash(split[i]);
+                String s = split[i];
+                if(Trytes.NULL_HASH.equals(s)){
+                    builder.addReferencedClasshash(s);
+                }else {
+                    try {
+                        builder.addAttribute(Integer.valueOf(s));
+                    } catch (NumberFormatException e) {
+                        builder.addReferencedClasshash(s);
+                    }
+                }
                 i++;
             }
         }
@@ -417,6 +442,10 @@ public class SerializationModule extends IxiModule {
 
     private void processPrepareDataRequest(EEEFunction.Request request) {
         DataFragment.Builder builder = dataFragmentBuilderFromRequest(request);
+        if(builder==null){
+            request.submitReturn(ixi, "");
+            return;
+        }
         DataFragment fragment = prepareBundleFragment(builder);
         request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
@@ -424,17 +453,24 @@ public class SerializationModule extends IxiModule {
     private DataFragment.Builder dataFragmentBuilderFromRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        String classHash = split[1];
+        String classHash = split[0];
         ClassFragment classFragment = persistence.search(classHash);
         if(classFragment==null) return null;
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
-        builder.setAttribute(0,Trytes.toTrits(split[0]));
-        builder.setReferencedTrunk(split[2]);
-        builder.setReferencedBranch(split[3]);
-        if (split.length > 4) {
-            int i = 4;
+        builder.setReferencedTrunk(split[1]);
+        builder.setReferencedBranch(split[2]);
+        if (split.length > 3) {
+            int i = 3;
             while (i < split.length) {
-                builder.setReference(i - 4, split[i]);
+                String[] tokens = split[i].split(" ");
+                if(tokens.length!=3)return null;
+                int index = Integer.valueOf(tokens[1]);
+                String trytes = tokens[2];
+                if("A".equals(tokens[0])){
+                    builder.setAttribute(index,trytes);
+                }else if("R".equals(tokens)){
+                    builder.setReference(index, trytes);
+                }
                 i++;
             }
         }
@@ -468,10 +504,13 @@ public class SerializationModule extends IxiModule {
         int attributeIndex = Integer.valueOf(split[2]);
         DataFragment fragment = loadDataFragment(hash);
         if (fragment != null) {
-            request.submitReturn(ixi, fragment.getAttributeAsTryte(attributeIndex));
-        } else {
-            request.submitReturn(ixi, "");
+            fragment = loadDataFragment(fragment.getReference(index));
+            if(fragment!=null) {
+                request.submitReturn(ixi, fragment.getAttributeAsTryte(attributeIndex));
+                return;
+            }
         }
+        request.submitReturn(ixi, "");
     }
 
     private void processGetReferenceRequest(EEEFunction.Request request) {
@@ -511,7 +550,7 @@ public class SerializationModule extends IxiModule {
                 DataFragment.Filter itemFilter = new DataFragment.Filter() {
                     @Override
                     public boolean match(DataFragment dataFragment) {
-                        return dataFragment.getAttributeAsTryte(fieldIndex).equals(fieldValue);
+                        return dataFragment.getAttributeAsTryte(fieldIndex).startsWith(fieldValue);
                     }
                 };
 
