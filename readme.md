@@ -4,11 +4,10 @@ Serialization.ixi provides a framework to publish data referencing other pieces 
 
 To do that we define two types of BundleFragment :
 
-The ClassFragment represent the metadata of a DataFragment. The DataFragment to store the data and the references 
-to other pieces of data.
+The ClassFragment represent the metadata of a DataFragment. The DataFragment to store the data (as a list of attributes) and the references to other pieces of data.
 
-The data part of a DataFragment is stored in it's message field. (maybe be on multiple transactions when required).
-The references to other DataFragment are stored in address and extradata-digest fields of bundleFragment transactions.
+The attributes of a DataFragment are stored in it's message field. (maybe be on multiple transactions when required).
+The references to other DataFragment (or arbitrary transactions) are stored in address and extradata-digest fields of bundleFragment transactions.
 
 ### BundleFragment
 
@@ -24,10 +23,12 @@ Those 2 trits must be 0 in all body transactions.
 
 We define a ClassFragment as a Bundle fragment using trit at tag[4] set to 1 to indicate the fragment-head-transaction 
 and the trit at tag[3] to indicate the fragment-tail-transaction.
+
 The message of ClassFragment encode metadata about a data fragment : 
-trits [0;81[ : data size
-trits [81;162[ : references count
-trits [162;243[ : attributes count
+
+- trits [0;81[ : data size
+- trits [81;162[ : references count
+- trits [162;243[ : attributes count
 
 The following trits of the message field encode the sizes of attributes of the DataFragment.
 An attribute is a slice of the message of a DataFragment.
@@ -37,7 +38,7 @@ Address field of the head transaction of a ClassFragment is always the NullHash.
 Extradata-digest and address fields of a ClassFragment store the ClassHash of referenced fragments.
 A reference to an arbitrary transaction is denoted by the NULL_HASH. This allow the creation of "chain" of DataFragment, but also referencing non DataFragment.
 
-We define the ClassHash as the hash of (referenced ClassHash + attribute size)
+We define the *ClassHash* as the hash (Curl-27) of the concatanation: &lt;referenced ClassHash&gt;&lt;attributes size&gt;
 
 ### DataFragment
 
