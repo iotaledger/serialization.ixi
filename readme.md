@@ -49,6 +49,8 @@ The address field of the headTransaction is reserved to store the ClassHash of t
 The message field of a DataFragment encode the attributes values.
 The transaction hash of referenced data-fragment are stored in next extradata-digest and address fields of bundle fragment transactions.
 
+<p align="center"><img src="docs/fragment-anatomy.png" width="500"/></p>
+
 ### API
 
     // FACTORY
