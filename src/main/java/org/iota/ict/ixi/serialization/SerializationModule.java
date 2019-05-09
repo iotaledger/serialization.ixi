@@ -56,16 +56,16 @@ public class SerializationModule extends IxiModule {
     private final EEEFunction prepareClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "prepareClassFragment"));
 
     /**
-     * Input  : <data_fragment_head_transaction_hash>
+     * Input  : <data_fragment_head_transaction_hash>;<index_of_the_attribute>
      * Output : <data as trytes>
      */
-    private final EEEFunction getData = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "getData"));
+    private final EEEFunction getAttribute = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "getAttribute"));
 
     /**
-     * Input  : <data_fragment_head_transaction_hash>;<index_of_the_reference>
+     * Input  : <data_fragment_head_transaction_hash>;<index_of_the_reference>;<index_of_the_attribute>
      * Output : <data of the referenced fragment (as trytes)>
      */
-    private final EEEFunction getReferencedData = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "getReferencedData"));
+    private final EEEFunction getReferencedAttribute = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "getReferencedAttribute"));
 
     /**
      * Input  : <data_fragment_head_transaction_hash>;<index_of_the_reference>
@@ -80,8 +80,8 @@ public class SerializationModule extends IxiModule {
     private final EEEFunction findFragmentsForClass = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "findFragmentsForClass"));
 
     /**
-     * Input  : <classHash>;<referenced transaction hash>;<index of searched reference>
-     * Output : <transaction hash of dataFragment>*
+     * Input  : <referenced transaction hash>[;<index>;<value>]
+     * Output : <transaction hash of dataFragment with at least one reference to referenced transaction hash>*
      */
     private final EEEFunction findReferencing = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "findReferencing"));
 
@@ -95,8 +95,8 @@ public class SerializationModule extends IxiModule {
         ixi.addListener(publishClassFragment);
         ixi.addListener(prepareDataFragment);
         ixi.addListener(prepareClassFragment);
-        ixi.addListener(getData);
-        ixi.addListener(getReferencedData);
+        ixi.addListener(getAttribute);
+        ixi.addListener(getReferencedAttribute);
         ixi.addListener(findFragmentsForClass);
         ixi.addListener(findReferencing);
     }
@@ -110,8 +110,8 @@ public class SerializationModule extends IxiModule {
         new EEERequestHandler(publishClassFragment, this::processPublishClassRequest).start();
         new EEERequestHandler(prepareDataFragment, this::processPrepareDataRequest).start();
         new EEERequestHandler(prepareClassFragment, this::processPrepareClassRequest).start();
-        new EEERequestHandler(getData, this::processGetDataRequest).start();
-        new EEERequestHandler(getReferencedData, this::processGetReferencedDataRequest).start();
+        new EEERequestHandler(getAttribute, this::processGetAttributeRequest).start();
+        new EEERequestHandler(getReferencedAttribute, this::processGetReferencedAttributeRequest).start();
         new EEERequestHandler(getReference, this::processGetReferenceRequest).start();
         new EEERequestHandler(findFragmentsForClass, this::processFindFragmentsForClassRequest).start();
         new EEERequestHandler(findReferencing, this::processFindReferencingRequest).start();
@@ -201,8 +201,12 @@ public class SerializationModule extends IxiModule {
         if (tx == null) {
             return null;
         }
-        DataFragment dataFragment = new DataFragment(tx);
-        return dataFragment;
+        ClassFragment classFragment = persistence.search(tx.address());
+        if(classFragment!=null) {
+            DataFragment dataFragment = new DataFragment(tx, classFragment);
+            return dataFragment;
+        }
+        return null;
     }
 
     /**
@@ -214,8 +218,11 @@ public class SerializationModule extends IxiModule {
         Set<DataFragment> ret = new HashSet<>();
         for (Transaction t : transactions) {
             try {
-                DataFragment fragment = new DataFragment(t);
-                ret.add(fragment);
+                ClassFragment classFragment = persistence.search(t.address());
+                if(classFragment!=null) {
+                    DataFragment fragment = new DataFragment(t, classFragment);
+                    ret.add(fragment);
+                }
             } catch (IllegalArgumentException e) {
                 //not a valid bundle fragment.
             }
@@ -224,71 +231,45 @@ public class SerializationModule extends IxiModule {
     }
 
     /**
-     * @param classHash                 the classHash of the searched fragments
      * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced
-     * @param index                     index of the reference
      * @return all DataFragment referencing *referencedTransactionHash* from reference at index *index*
      */
-    public Set<DataFragment> findDataFragmentReferencing(String classHash, String referencedTransactionHash, int index) {
+    public Set<DataFragment> findDataFragmentReferencing(String referencedTransactionHash, DataFragment.Filter filter) {
         if (referencedTransactionHash == null || referencedTransactionHash.equals(Trytes.NULL_HASH)) {
             throw new IllegalArgumentException("referencedTransactionHash cannot be null");
         }
-        if (classHash == null || classHash.equals(Trytes.NULL_HASH)) {
-            throw new IllegalArgumentException("classHash hash cannot be null");
+        Set<DataFragment> ret = persistence.referencing.get(referencedTransactionHash);
+        if(ret==null) return Collections.EMPTY_SET;
+        if(filter==null){
+            return ret;
         }
-        if (index < 0) {
-            throw new IllegalArgumentException("index cannot be < 0");
-        }
-        //TODO : optimize me
-        Set<Transaction> transactions = ixi.findTransactionsByAddress(classHash);
-        Set<DataFragment> ret = new HashSet<>();
-        for (Transaction t : transactions) {
-            try {
-                DataFragment fragment = new DataFragment(t);
-                if (fragment.getReference(index).equals(referencedTransactionHash))
-                    ret.add(fragment);
-            } catch (IllegalArgumentException e) {
-                //not a valid bundle fragment.
+        if(ret.size()==0)return Collections.EMPTY_SET;
+        HashSet<DataFragment> filtered = new HashSet<>();
+        for(DataFragment f:ret){
+            if(filter.match(f)){
+                filtered.add(f);
             }
         }
-        return ret;
+        return filtered;
     }
 
     public DataFragment getFragmentAtIndex(DataFragment fragment, int index) {
         return loadDataFragment(fragment.getReference(index));
     }
 
-    public byte[] getData(DataFragment dataFragment) {
+    public String getAttributeTrytes(DataFragment dataFragment, int index) {
         if (dataFragment == null) {
             throw new IllegalArgumentException("dataFragment cannot be null");
         }
-        return dataFragment.getData();
+        return dataFragment.getAttributeAsTryte(index);
     }
 
-    public byte[] getData(String dataFragmentTransactionHash) {
+    public String getAttributeTrytes(String dataFragmentTransactionHash, int index) {
         DataFragment dataFragment = loadDataFragment(dataFragmentTransactionHash);
         if (dataFragment == null) {
             return null;
         }
-        return dataFragment.getData();
-    }
-
-    /**
-     * @return the value in trytes of key at index
-     * @throws IndexOutOfBoundsException when index is invalid
-     */
-    public byte[] getDataAtIndex(DataFragment dataFragment, int index) {
-        if (dataFragment == null) {
-            throw new IllegalArgumentException("dataFragment cannot be null");
-        }
-        if (index < 0) {
-            throw new IllegalArgumentException("index must be >= 0");
-        }
-        DataFragment referenced = getFragmentAtIndex(dataFragment, index);
-        if (referenced != null) {
-            return referenced.getData();
-        }
-        return null;
+        return dataFragment.getAttributeAsTryte(index);
     }
 
     /**
@@ -376,7 +357,10 @@ public class SerializationModule extends IxiModule {
         if (headTransactionHash != null) {
             Transaction headTransaction = ixi.findTransactionByHash(headTransactionHash);
             if (headTransaction != null) {
-                return new DataFragment(headTransaction);
+                ClassFragment classFragment = persistence.search(headTransaction.address());
+                if(classFragment!=null) {
+                    return new DataFragment(headTransaction, classFragment);
+                }
             }
         }
         return null;
@@ -402,12 +386,14 @@ public class SerializationModule extends IxiModule {
 
     private void processPublishDataRequest(EEEFunction.Request request) {
         DataFragment.Builder builder = dataFragmentBuilderFromRequest(request);
+        if(builder==null) request.submitReturn(ixi,"");
         DataFragment fragment = publishBundleFragment(builder);
         request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
 
     private void processPublishClassRequest(EEEFunction.Request request) {
         ClassFragment.Builder builder = classFragmentBuilderFromRequest(request);
+        if(builder==null) request.submitReturn(ixi,"");
         ClassFragment fragment = publishBundleFragment(builder);
         request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
@@ -438,9 +424,11 @@ public class SerializationModule extends IxiModule {
     private DataFragment.Builder dataFragmentBuilderFromRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        String classHash = split[0];
-        DataFragment.Builder builder = new DataFragment.Builder(classHash);
-        builder.setData(Trytes.toTrits(split[1]));
+        String classHash = split[1];
+        ClassFragment classFragment = persistence.search(classHash);
+        if(classFragment==null) return null;
+        DataFragment.Builder builder = new DataFragment.Builder(classFragment);
+        builder.setAttribute(0,Trytes.toTrits(split[0]));
         builder.setReferencedTrunk(split[2]);
         builder.setReferencedBranch(split[3]);
         if (split.length > 4) {
@@ -459,28 +447,28 @@ public class SerializationModule extends IxiModule {
         request.submitReturn(ixi, fragment.getHeadTransaction().hash);
     }
 
-    private void processGetDataRequest(EEEFunction.Request request) {
-        String argument = request.argument;
-        String[] split = argument.split(";");
-        String hash = split[0];
-        DataFragment fragment = loadDataFragment(hash);
-        if (fragment != null) {
-            String ret = Trytes.fromTrits(fragment.getData());
-            request.submitReturn(ixi, ret);
-        } else {
-            request.submitReturn(ixi, "");
-        }
-    }
-
-    private void processGetReferencedDataRequest(EEEFunction.Request request) {
+    private void processGetAttributeRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
         String hash = split[0];
         int index = Integer.valueOf(split[1]);
         DataFragment fragment = loadDataFragment(hash);
         if (fragment != null) {
-            String ret = Trytes.fromTrits(getDataAtIndex(fragment, index));
-            request.submitReturn(ixi, ret);
+            request.submitReturn(ixi, fragment.getAttributeAsTryte(index));
+        } else {
+            request.submitReturn(ixi, "");
+        }
+    }
+
+    private void processGetReferencedAttributeRequest(EEEFunction.Request request) {
+        String argument = request.argument;
+        String[] split = argument.split(";");
+        String hash = split[0];
+        int index = Integer.valueOf(split[1]);
+        int attributeIndex = Integer.valueOf(split[2]);
+        DataFragment fragment = loadDataFragment(hash);
+        if (fragment != null) {
+            request.submitReturn(ixi, fragment.getAttributeAsTryte(attributeIndex));
         } else {
             request.submitReturn(ixi, "");
         }
@@ -511,10 +499,30 @@ public class SerializationModule extends IxiModule {
     private void processFindReferencingRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        String classHash = split[0];
-        String referencedTransactionHash = split[1];
-        int index = Integer.valueOf(split[2]);
-        Set<DataFragment> fragments = findDataFragmentReferencing(classHash, referencedTransactionHash, index);
+        String referencedTransactionHash = split[0];
+        DataFragment.Filter filter = null;
+        if(split.length>1){
+            int i = 1;
+            while(i+1<split.length){
+                int fieldIndex = Integer.valueOf(split[i]);
+                String fieldValue = split[i+1];
+                i +=2;
+
+                DataFragment.Filter itemFilter = new DataFragment.Filter() {
+                    @Override
+                    public boolean match(DataFragment dataFragment) {
+                        return dataFragment.getAttributeAsTryte(fieldIndex).equals(fieldValue);
+                    }
+                };
+
+                if(filter==null){
+                    filter = itemFilter;
+                }else{
+                    filter = DataFragment.Filter.and(filter,itemFilter);
+                }
+            }
+        }
+        Set<DataFragment> fragments = findDataFragmentReferencing(referencedTransactionHash, filter);
         returnFragmentSet(request, fragments);
     }
 
@@ -609,8 +617,12 @@ public class SerializationModule extends IxiModule {
         }
 
         private Transaction processDataFragment(Transaction fragmentHead) {
-            DataFragment dataFragment = new DataFragment(fragmentHead);
-            notifyListeners(dataFragment);
+            ClassFragment classFragment = persistence.search(fragmentHead.address());
+            if(classFragment!=null) {
+                DataFragment dataFragment = new DataFragment(fragmentHead, classFragment);
+                persistence.persist(dataFragment);
+                notifyListeners(dataFragment);
+            }
             return null;
         }
     }
@@ -618,11 +630,25 @@ public class SerializationModule extends IxiModule {
 
     private class Persistence {
         private Map<String, ClassFragment> classFragments = new HashMap<>();
+        private Map<String, Set<DataFragment>> referencing = new HashMap<>();
 
         public void persist(ClassFragment classFragment){
             classFragments.put(classFragment.getClassHash(), classFragment);
         }
 
+        public void persist(DataFragment dataFragment){
+            for(int i=0;i<dataFragment.getClassFragment().getRefCount();i++){
+                String referenced = dataFragment.getReference(i);
+                if(!referenced.equals(Trytes.NULL_HASH)){
+                    Set<DataFragment> set = referencing.get(referenced);
+                    if(set==null){
+                        set = new HashSet<>();
+                        referencing.put(referenced,set);
+                    }
+                    set.add(dataFragment);
+                }
+            }
+        }
         public ClassFragment search(String classHash){
             ClassFragment fragment = classFragments.get(classHash);
             return fragment;

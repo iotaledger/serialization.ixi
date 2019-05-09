@@ -10,15 +10,15 @@ public class ClassFragmentTest  {
     @Test
     public void buildSimpleClassFragmentTest(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.withDataSize(25);
+        builder.addAttribute(24);
         ClassFragment classFragment = builder.build();
-        assertEquals(25, classFragment.getDataSize());
+        assertEquals(24, classFragment.getDataSize());
         assertEquals(0, classFragment.getRefCount());
 
         builder = new ClassFragment.Builder();
-        builder.withDataSize(26);
+        builder.addAttribute(27);
         ClassFragment classFragment2 = builder.build();
-        assertEquals(26, classFragment2.getDataSize());
+        assertEquals(27, classFragment2.getDataSize());
         assertEquals(0, classFragment2.getRefCount());
 
         assertNotEquals(classFragment.getClassHash(), classFragment2.getClassHash());

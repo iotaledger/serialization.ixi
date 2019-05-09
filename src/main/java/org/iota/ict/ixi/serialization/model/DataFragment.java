@@ -16,27 +16,19 @@ import static org.iota.ict.utils.Trytes.NULL_HASH;
 @SuppressWarnings("WeakerAccess")
 public class DataFragment extends BundleFragment {
 
-    private static final int LENGTH_OF_SIZE_FIELD = 27;
+    private static final int LENGTH_OF_SIZE_FIELD = ClassFragment.TRYTE_LENGTH_OF_SIZE_FIELD;
 
     private int dataSizeInTrits;
+    private int refCount;
+    private int attributeCount;
+    private ClassFragment classFragment;
 
-    public DataFragment(Transaction headTransaction){
+    public DataFragment(Transaction headTransaction, ClassFragment classFragment){
         super(headTransaction);
-        dataSizeInTrits = Trytes.toNumber(headTransaction.signatureFragments().substring(0,9)).intValue();
-    }
-
-    public byte[] getData(){
-        byte[] ret = new byte[dataSizeInTrits];
-        StringBuilder sb = new StringBuilder(getHeadTransaction().signatureFragments().substring(LENGTH_OF_SIZE_FIELD/3));
-        Transaction tx = getHeadTransaction().getTrunk();
-        while(tx!=null && dataSizeInTrits/3 > sb.length()){
-            sb.append(tx.signatureFragments());
-            tx = tx.getTrunk();
-        }
-        int tryteLength = (dataSizeInTrits/3)+1;
-        byte[] trits = Trytes.toTrits(sb.substring(0,Math.min(sb.length(),tryteLength)));
-        System.arraycopy(trits,0,ret,0,Math.min(dataSizeInTrits, trits.length));
-        return ret;
+        this.classFragment = classFragment;
+        dataSizeInTrits = classFragment.getDataSize();
+        refCount = classFragment.getRefCount();
+        attributeCount = classFragment.getAttributeCount();
     }
 
     public String getReference(int index){
@@ -72,19 +64,50 @@ public class DataFragment extends BundleFragment {
         return getHeadTransaction().address();
     }
 
+    public ClassFragment getClassFragment() {
+        return classFragment;
+    }
+
+    public String getAttributeAsTryte(int attributeIndex) {
+        int startIndex = classFragment.getTryteIndexForAttribute(attributeIndex);
+        int length = classFragment.getTryteLengthForAttribute(attributeIndex);
+        StringBuilder sb = new StringBuilder();
+        Transaction tx = getHeadTransaction();
+        while(startIndex>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
+            tx = tx.getTrunk();
+            if(tx==null) return Trytes.padRight("",length);
+            startIndex = startIndex-Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength;
+        }
+        if(startIndex+length<Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
+            return tx.signatureFragments().substring(startIndex, startIndex+length);
+        }
+        sb.append(tx.signatureFragments().substring(startIndex));
+        int remaining = length -sb.length();
+        while(remaining>0) {
+            tx = tx.getTrunk();
+            if (tx == null) return Trytes.padRight(sb.toString(), length);
+            if(remaining>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
+                remaining -= Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength;
+                sb.append(tx.signatureFragments());
+            }else{
+                sb.append(tx.signatureFragments(), 0, remaining);
+                remaining = 0;
+            }
+        }
+        return sb.toString();
+    }
+
 
     public static class Builder extends BundleFragment.Builder<DataFragment> {
 
         private Map<Integer, String> referenceHashes = new HashMap<>();
-        private byte[] data;
+        private Map<Integer,String> data = new HashMap<>();
         private String classHash;
+        private ClassFragment classFragment;
 
         public Builder(ClassFragment classFragment){
-            this(classFragment.getClassHash());
-        }
-
-        public Builder(String classHash){
-            this.classHash = classHash;
+            this.classFragment = classFragment;
+            this.classHash = classFragment.getClassHash();
         }
 
         @Override
@@ -95,7 +118,7 @@ public class DataFragment extends BundleFragment {
 
             Transaction lastTransaction = buildBundleFragment();
 
-            return new DataFragment(lastTransaction);
+            return new DataFragment(lastTransaction, classFragment);
         }
 
         public void setReference(int index, String hash){
@@ -112,15 +135,6 @@ public class DataFragment extends BundleFragment {
             }else{
                 setReference(index, data.getHeadTransaction().hash);
             }
-        }
-
-        public Builder setData(byte[] data) {
-            this.data = data;
-            return this;
-        }
-
-        public Builder setData(String data) {
-            return setData(Trytes.toTrits(data));
         }
 
         private void setTags() {
@@ -140,15 +154,24 @@ public class DataFragment extends BundleFragment {
 
         private void prepareTransactionBuilders() {
             int refCount = referenceHashes.size()==0?0:1+Collections.max(referenceHashes.keySet());
-            int transactionsRequiredForData = data==null ? 1 : 1 + (data.length / Transaction.Field.SIGNATURE_FRAGMENTS.tritLength);
+            int transactionsRequiredForData = data==null ? 1 : 1 + (classFragment.getDataSize() / Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
             int transactionsRequiredForReferences = 1 + (refCount)/2;
             int transactionsRequired = Math.max(transactionsRequiredForData, transactionsRequiredForReferences);
 
-            int dataIndex = 0;
             int currentRefIndex = 0;
 
             TransactionBuilder builder = new TransactionBuilder();
             builder.address = classHash;
+
+            StringBuilder dataTrytes = new StringBuilder();
+            for(int i=0;i<classFragment.getAttributeCount();i++){
+                String attributeValue = data.get(i);
+                if(attributeValue==null){
+                    attributeValue = "";
+                }
+                dataTrytes.append(Trytes.padRight(attributeValue,classFragment.getTryteLengthForAttribute(i)));
+            }
+            int trytesOffset = 0;
             for(int i=0;i<transactionsRequired;i++){
                 if(i>0) {
                     String address = referenceHashes.get(currentRefIndex++);
@@ -160,24 +183,32 @@ public class DataFragment extends BundleFragment {
                 if(extra!=null) {
                     builder.extraDataDigest = extra;
                 }
-                if(data!=null && data.length > 0 && dataIndex < data.length) {
-                    StringBuilder sb = new StringBuilder();
-                    int offsetInMessageField = 0;
-                    if(i==0){
-                        //27 first trits store the size of the data
-                        offsetInMessageField = LENGTH_OF_SIZE_FIELD;
-                        sb.append(Trytes.fromNumber(BigInteger.valueOf(data.length),LENGTH_OF_SIZE_FIELD/3));
-                    }
-                    byte[] tx_data = new byte[Math.min(data.length-dataIndex, Transaction.Field.SIGNATURE_FRAGMENTS.tritLength - offsetInMessageField)];
-                    System.arraycopy(data,dataIndex,tx_data,0,tx_data.length);
-                    sb.append(Trytes.fromTrits(tx_data));
-                    builder.signatureFragments = sb.toString();
-                    Utils.padRightSignature(builder);
-                    dataIndex += tx_data.length;
+                if(trytesOffset<dataTrytes.length()){
+                    int tryteLengthStoredHere = Math.min((dataTrytes.length()-trytesOffset),Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+                    builder.signatureFragments = dataTrytes.substring(trytesOffset, trytesOffset+tryteLengthStoredHere);
+                    trytesOffset += tryteLengthStoredHere;
                 }
                 addFirst(builder);
                 builder = new TransactionBuilder();
             }
+        }
+
+        public Builder setAttribute(int i, byte[] data) {
+            if(data==null){
+                this.data.remove(i);
+            }else {
+                this.data.put(i, Trytes.fromTrits(data));
+            }
+            return this;
+        }
+
+        public Builder setAttribute(int i, String data) {
+            if(data==null){
+                this.data.remove(i);
+            }else {
+                this.data.put(i,data);
+            }
+            return this;
         }
     }
 
@@ -196,6 +227,15 @@ public class DataFragment extends BundleFragment {
 
     public interface Filter {
         boolean match(DataFragment dataFragment);
+
+        public static Filter and(Filter f0, Filter f1){
+            return new Filter() {
+                @Override
+                public boolean match(DataFragment dataFragment) {
+                    return f0.match(dataFragment) && f1.match(dataFragment);
+                }
+            };
+        }
     }
 
 }

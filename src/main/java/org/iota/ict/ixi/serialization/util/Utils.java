@@ -7,9 +7,14 @@ import org.iota.ict.utils.Trytes;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 
 @SuppressWarnings("WeakerAccess")
 public class Utils {
+
+
+    public static final BigInteger BIG_3 = BigInteger.valueOf(3);
+    public static final BigInteger BIG_2 = BigInteger.valueOf(2);
 
     public static TransactionBuilder padRightSignature(TransactionBuilder builder){
         builder.signatureFragments = Trytes.padRight(builder.signatureFragments, Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
@@ -78,5 +83,97 @@ public class Utils {
     private static boolean isFlagSet(byte[] hashTrits, int position) {
         assert hashTrits.length == Transaction.Field.TRUNK_HASH.tritLength;
         return hashTrits[position] == 1;
+    }
+    public static String asciiFromTrits(byte[] trits){
+        byte[] b = completeTritsBeforeConversion(trits);
+        return Trytes.toAscii(Trytes.fromTrits(b));
+    }
+
+    public static byte[] tritsFromAscii(String value){
+        return Trytes.toTrits(Trytes.fromAscii(value));
+    }
+
+    public static byte[] tritsFromInteger(Integer value, int length) {
+        if(value!=null && length>0){
+            return Utils.tritsFromBigInteger(BigInteger.valueOf(value), length);
+        }
+        return new byte[length];
+    }
+
+    public static byte[] tritsFromLong(Long value, int length) {
+        if(value!=null && length>0){
+            return Utils.tritsFromBigInteger(BigInteger.valueOf(value), length);
+        }
+        return new byte[length];
+    }
+
+    public static byte[] tritsFromBigInteger(BigInteger value, int length){
+        if(value==null || length==0 || value.equals(BigInteger.ZERO)){
+            return new byte[length];
+        }
+        boolean negative = value.compareTo(BigInteger.ZERO) < 0;
+        if (negative) value = value.negate();
+        ArrayList<BigInteger> unbalanced = new ArrayList<>();
+        BigInteger quotien = value;
+        while (quotien.compareTo(BigInteger.ZERO) > 0) {
+            unbalanced.add( quotien.mod(BIG_3));
+            quotien = quotien.divide(BIG_3);
+        }
+
+        ArrayList<Integer> resp = new ArrayList<>();
+        BigInteger carry = BigInteger.ZERO;
+        for (int i = 0; i < unbalanced.size(); i++) {
+            BigInteger unbal = unbalanced.get(i);
+            if(unbal.compareTo(BIG_2)==0){
+                if(carry.compareTo(BigInteger.ZERO)==0){
+                    resp.add(-1);
+                    carry= BigInteger.ONE;
+                }else{
+                    resp.add(0);
+                    carry= BigInteger.ONE;
+                }
+            }else{
+                if(unbal.add(carry).compareTo(BIG_2)==0){
+                    resp.add(-1);
+                    carry=BigInteger.ONE;
+                }else{
+                    if(unbal.add(carry).compareTo(BigInteger.ONE)==0){
+                        resp.add(1);
+                        carry=BigInteger.ZERO;
+                    }else{
+                        resp.add(0);
+                        carry=BigInteger.ZERO;
+                    }
+                }
+            }
+
+        }
+        if (carry.compareTo(BigInteger.ZERO)!=0) {
+            resp.add(1);
+        }
+        byte[] ret = new byte[length];
+        for(int i=0;i<resp.size() && i<length; i++){
+            if(negative){
+                switch(resp.get(i)){
+                    case 1:ret[i]=-1;break;
+                    case -1:ret[i]=1;break;
+                }
+            }else {
+                ret[i] = resp.get(i).byteValue();
+            }
+        }
+        return ret;
+    }
+
+    public static Boolean booleanFromTrits(byte[] value) {
+        return value==null? null : value[0] == 1;
+    }
+
+    public static byte[] tritsFromBoolean(Boolean value, int length) {
+        byte[] ret = new byte[length];
+        if(value!=null && value){
+            ret[0] = 1;
+        }
+        return ret;
     }
 }

@@ -2,6 +2,7 @@ package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.TestUtils;
+import org.iota.ict.ixi.serialization.model.ClassFragment;
 import org.iota.ict.ixi.serialization.model.DataFragment;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.bundle.BundleBuilder;
@@ -89,7 +90,8 @@ public class SerializationModuleTest {
 
     @Test
     public void prepareDataFragment(){
-        DataFragment.Builder builder = new DataFragment.Builder(TestUtils.randomHash());
+        ClassFragment classFragment = new ClassFragment.Builder().addReferencedClasshash(TestUtils.randomHash()).build();
+        DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         builder.setReference(1, TestUtils.randomHash());
         DataFragment.Prepared preparedData = serializationModule.prepare(builder);
         assertEquals(2,preparedData.fromTailToHead().size());
@@ -119,7 +121,8 @@ public class SerializationModuleTest {
     }
 
     private Bundle createBundle() {
-        DataFragment.Builder builder = new DataFragment.Builder(TestUtils.randomHash());
+        ClassFragment classFragment = new ClassFragment.Builder().addReferencedClasshash(TestUtils.randomHash()).build();
+        DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         builder.setReference(0,TestUtils.randomHash());
         builder.setReference(1,TestUtils.randomHash());
         DataFragment.Prepared preparedData = serializationModule.prepare(builder);

@@ -9,8 +9,6 @@ import java.util.List;
 @SuppressWarnings("WeakerAccess")
 public abstract class BundleFragment {
 
-    public static int CURL_ROUNDS_BUNDLE_FRAGMANT_HASH = 27;
-
     private Transaction headTransaction;
 
     public BundleFragment(Transaction headTransaction) {

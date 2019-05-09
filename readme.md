@@ -1,6 +1,6 @@
 ## Serialization.ixi
 
-Serialization.ixi provides a framework to publish data referencing other pieces of data on the Tangle. (one data, many keys)
+Serialization.ixi provides a framework to publish data referencing other pieces of data on the Tangle.
 
 To do that we define two types of BundleFragment :
 
@@ -24,32 +24,29 @@ Those 2 trits must be 0 in all body transactions.
 
 We define a ClassFragment as a Bundle fragment using trit at tag[4] set to 1 to indicate the fragment-head-transaction 
 and the trit at tag[3] to indicate the fragment-tail-transaction.
-The message of ClassFragment contains 54 meaningful trits:
- - 27 first trits encode the reference-count (integer)
- - 27 next trits encode the data-size (integer)
+The message of ClassFragment encode metadata about a data fragment : 
+trits [0;81[ : data size
+trits [81;162[ : references count
+trits [162;243[ : attributes count
 
-Address field of the head transaction of a ClassFragment is reserved to store ??? (ClassHash or NullHash ?).  
-Extradata-digest and address fields of a ClassFragment store the classHash of referenced fragments.
+The following trits of the message field encode the sizes of attributes of the DataFragment.
+An attribute is a slice of the message of a DataFragment.
+The size of an attribute is encoded on 6 trytes.
+
+Address field of the head transaction of a ClassFragment is always the NullHash.  
+Extradata-digest and address fields of a ClassFragment store the ClassHash of referenced fragments.
 A reference to an arbitrary transaction is denoted by the NULL_HASH. This allow the creation of "chain" of DataFragment, but also referencing non DataFragment.
+
+We define the ClassHash as the hash of (referenced ClassHash + attribute size)
 
 ### DataFragment
 
-We define a ClassFragment as a Bundle fragment using trit at tag[6] set to 1 to indicate the fragment-head-transaction 
+We define a DataFragment as a Bundle fragment using trit at tag[6] set to 1 to indicate the fragment-head-transaction 
 and the trit at tag[5] to indicate the fragment-tail-transaction.
 
-The 27 first trits of the message store the size of the data (redundancy with size stored in the corresponding classFragment)
-The following trits of the message store the data.
 The address field of the headTransaction is reserved to store the ClassHash of the ClassFragment for this DataFragment.
+The message field of a DataFragment encode the attributes values.
 The transaction hash of referenced data-fragment are stored in next extradata-digest and address fields of bundle fragment transactions.
-
-### Search
-
-As the address field of the head transaction of a DataFragment is reserved to store the classHash : 
-we can easily search for all DataFragment for a given classHash (findByAddress).
-
-Searching for all DataFragments referencing a specific DataFragment can also be done by a "findByAddress" or "findByExtraDataDigest".
-
-(same kind of search can be done to query the classes DAG).
 
 ### API
 
@@ -111,15 +108,7 @@ Searching for all DataFragments referencing a specific DataFragment can also be 
     
     public DataFragment getFragmentAtIndex(DataFragment fragment, int index);
     
-    public byte[] getData(DataFragment dataFragment);
-    
-    public byte[] getData(String dataFragmentTransactionHash);
-    
-    /**
-    * @return the value in trytes of key at index
-    * @throws IndexOutOfBoundsException when index is invalid
-    */
-    public byte[] getDataAtIndex(DataFragment dataFragment, int index);
+    public String getAttribute(DataFragment dataFragment, int attributeIndex);
     
     //EEE
     

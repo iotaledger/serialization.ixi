@@ -59,14 +59,15 @@ public class SerializationModuleIT {
 
     @Test
     public void loadDataFragmentFromNoFragmentHeadTest() throws InterruptedException {
-        Bundle bundle = createMyDataBundle(TestUtils.randomHash(), null);
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
+        Bundle bundle = createMyDataBundle(classFragment, null);
         List<Transaction> txs = bundle.getTransactions();
         for(int i = txs.size()-1; i>=0 ;i--){
             ict.submit(txs.get(i));
         }
         safeSleep(50);
         Transaction nonHead = txs.get(0);
-        assertThrows(IllegalArgumentException.class,() -> serializationModule.loadDataFragment(nonHead.hash));
+        assertNull(serializationModule.loadDataFragment(nonHead.hash));
     }
 
 
@@ -86,16 +87,16 @@ public class SerializationModuleIT {
 
     @Test
     public void testGetDataFragment(){
-        ClassFragment classFragment = new ClassFragment.Builder()
+        ClassFragment classFragment = serializationModule.publishBundleFragment(new ClassFragment.Builder()
+                .addAttribute(9)
                 .addReferencedClasshash(TestUtils.random(81))
-                .addReferencedClasshash(TestUtils.random(81))
-                .build();
-
+                .addReferencedClasshash(TestUtils.random(81)));
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         byte[] data = new byte[]{1,1,1,1,1,1,1,1,1};
-        builder.setData(data);
+        builder.setAttribute(0,data);
 
         ClassFragment classFragment2 = new ClassFragment.Builder()
+                .addAttribute(9)
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81))
                 .build();
@@ -103,48 +104,49 @@ public class SerializationModuleIT {
 
         DataFragment.Builder builder1 = new DataFragment.Builder(classFragment2);
         data = new byte[]{-1,-1,-1,-1,-1,-1,-1,-1,-1};
-        builder1.setData(data);
+        builder.setAttribute(0,data);
         builder1.setReference(0, fragment0);
 
         DataFragment fragment1 = serializationModule.publishBundleFragment(builder1);
         DataFragment fragment0Clone = serializationModule.getDataFragment(fragment1, 0);
 
         assertEquals(fragment0.getReference(0), fragment0Clone.getReference(0));
-        assertArrayEquals(fragment0.getData(), fragment0Clone.getData());
+        assertEquals(fragment0.getAttributeAsTryte(0), fragment0Clone.getAttributeAsTryte(0));
     }
 
     @Test
     public void testGetDataFragmentLongData(){
-        ClassFragment classFragment = new ClassFragment.Builder()
+        ClassFragment classFragment = serializationModule.publishBundleFragment(new ClassFragment.Builder()
+                .addAttribute(25002/3)
                 .addReferencedClasshash(TestUtils.random(81))
-                .addReferencedClasshash(TestUtils.random(81))
-                .build();
+                .addReferencedClasshash(TestUtils.random(81)));
 
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         byte[] data = TestUtils.randomTrits(25002);
-        builder.setData(data);
+        builder.setAttribute(0,data);
         DataFragment fragment0 = serializationModule.publishBundleFragment(builder);
 
-        ClassFragment classFragment2 = new ClassFragment.Builder()
+        ClassFragment classFragment2 = serializationModule.publishBundleFragment(new ClassFragment.Builder()
+                .addAttribute(25002/3)
                 .addReferencedClasshash(TestUtils.random(81))
-                .addReferencedClasshash(TestUtils.random(81))
-                .build();
+                .addReferencedClasshash(TestUtils.random(81)));
 
         builder = new DataFragment.Builder(classFragment2);
         data = TestUtils.randomTrits(25002);
-        builder.setData(data);
+        builder.setAttribute(0,data);
         builder.setReference(0, fragment0);
         DataFragment fragment1 = serializationModule.publishBundleFragment(builder);
 
         DataFragment fragment0Clone = serializationModule.getDataFragment(fragment1, 0);
 
         assertEquals(fragment0.getReference(0), fragment0Clone.getReference(0));
-        assertArrayEquals(fragment0.getData(), fragment0Clone.getData());
-        assertArrayEquals(data, fragment1.getData());
+        assertEquals(fragment0.getAttributeAsTryte(0), fragment0Clone.getAttributeAsTryte(0));
+        assertEquals(25002, data.length);
+        assertEquals(Trytes.fromTrits(data), fragment1.getAttributeAsTryte(0));
     }
 
-    private String createAndSubmitBundle(String dataBundleClassHash, byte[] data) throws InterruptedException {
-        Bundle bundle = createMyDataBundle(dataBundleClassHash, data);
+    private String createAndSubmitBundle(ClassFragment classFragment, byte[] data) throws InterruptedException {
+        Bundle bundle = createMyDataBundle(classFragment, data);
         Transaction bundleHead = submitBundle(bundle);
         Transaction fragmentHead = bundleHead.getTrunk();
         String dataHeadHash = fragmentHead.hash;
@@ -162,25 +164,28 @@ public class SerializationModuleIT {
 
     @Test
     public void testFindDataFragments() throws InterruptedException {
-        String classHash = TestUtils.randomHash();
-        createAndSubmitBundle(classHash, null);
-        createAndSubmitBundle(TestUtils.randomHash(), null);
-        Set<DataFragment> fragments = serializationModule.findDataFragmentForClassHash(classHash);
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
+        createAndSubmitBundle(classFragment, null);
+        ClassFragment classFragment2 = getRandomPublishedClassFragment(27);
+        createAndSubmitBundle(classFragment2, null);
+        Set<DataFragment> fragments = serializationModule.findDataFragmentForClassHash(classFragment.getClassHash());
         assertEquals(1,fragments.size());
         DataFragment fragment = fragments.iterator().next();
-        assertEquals(classHash, fragment.getClassHash());
+        assertEquals(classFragment.getClassHash(), fragment.getClassHash());
     }
 
     @Test
     public void testFindFragmentReferencing() throws InterruptedException {
-        String classHash = TestUtils.randomHash();
-        String classHash2 = TestUtils.randomHash();
-        String dataTransactionHash = createAndSubmitBundle(classHash, null);
-        DataFragment.Builder builder = new DataFragment.Builder(classHash2);
+        ClassFragment class1 = getRandomPublishedClassFragment(27);
+        ClassFragment class2 = getRandomPublishedClassFragment(27);
+        String classHash = class1.getClassHash();
+        String classHash2 = class2.getClassHash();
+        String dataTransactionHash = createAndSubmitBundle(class1, null);
+        DataFragment.Builder builder = new DataFragment.Builder(class2);
         builder.setReference(0, dataTransactionHash);
         DataFragment referencingFragment = serializationModule.publishBundleFragment(builder);
-
-        Set<DataFragment> fragments = serializationModule.findDataFragmentReferencing(classHash2,dataTransactionHash,0);
+        safeSleep(200);
+        Set<DataFragment> fragments = serializationModule.findDataFragmentReferencing(dataTransactionHash, null);
         assertEquals(1,fragments.size());
         DataFragment fragment = fragments.iterator().next();
         assertEquals(referencingFragment.getClassHash(), fragment.getClassHash());
@@ -192,9 +197,9 @@ public class SerializationModuleIT {
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragmentForClassHash(null));
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragmentForClassHash(Trytes.NULL_HASH));
         assertNull(serializationModule.loadClassFragmentForClassHash(TestUtils.randomHash()));
-        ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder();
-        classFragmentBuilder.withDataSize(99);
-        classFragmentBuilder.addReferencedClasshash(TestUtils.randomHash());
+        ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder()
+                .addAttribute(99)
+                .addReferencedClasshash(TestUtils.randomHash());
         ClassFragment classFragment = serializationModule.publishBundleFragment(classFragmentBuilder);
         safeSleep(100);
         ClassFragment reloadedClassFragment = serializationModule.loadClassFragmentForClassHash(classFragment.getClassHash());
@@ -206,9 +211,9 @@ public class SerializationModuleIT {
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragment(null));
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragment(Trytes.NULL_HASH));
         assertNull(serializationModule.loadClassFragment(TestUtils.randomHash()));
-        ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder();
-        classFragmentBuilder.withDataSize(99);
-        classFragmentBuilder.addReferencedClasshash(TestUtils.randomHash());
+        ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder()
+                .addAttribute(99)
+                .addReferencedClasshash(TestUtils.randomHash());
         ClassFragment classFragment = serializationModule.publishBundleFragment(classFragmentBuilder);
 
         ClassFragment loaded = serializationModule.loadClassFragment(classFragment.getHeadTransaction().hash);
@@ -218,24 +223,25 @@ public class SerializationModuleIT {
 
     @Test
     public void getDataTest() throws InterruptedException {
-        assertThrows(IllegalArgumentException.class, ()->serializationModule.getData((DataFragment) null));
-        assertThrows(IllegalArgumentException.class, ()->serializationModule.getData((String) null));
-        assertThrows(IllegalArgumentException.class, ()->serializationModule.getData(Trytes.NULL_HASH));
-        assertNull(serializationModule.getData(TestUtils.randomHash()));
+        assertThrows(IllegalArgumentException.class, ()->serializationModule.getAttributeTrytes((DataFragment) null, 1));
+        assertThrows(IllegalArgumentException.class, ()->serializationModule.getAttributeTrytes((String) null, 1));
+        assertThrows(IllegalArgumentException.class, ()->serializationModule.getAttributeTrytes(Trytes.NULL_HASH, 0));
+        assertNull(serializationModule.getAttributeTrytes(TestUtils.randomHash(), 0));
         byte[] data = new byte[]{1,1,1,0,0,0,-1,-1,-1};
-        String dataFragmentHash = createAndSubmitBundle(TestUtils.randomHash(),data);
-        byte[] loadedData = serializationModule.getData(dataFragmentHash);
-        assertArrayEquals(data, loadedData);
+        ClassFragment classFragment = getRandomPublishedClassFragment(3);
+        String dataFragmentHash = createAndSubmitBundle(classFragment,data);
+        String loadedData = serializationModule.getAttributeTrytes(dataFragmentHash,0);
+        assertEquals(Trytes.fromTrits(data), loadedData);
 
         DataFragment dataFragment = serializationModule.loadDataFragment(dataFragmentHash);
-        loadedData = serializationModule.getData(dataFragment);
-        assertArrayEquals(data, loadedData);
+        loadedData = serializationModule.getAttributeTrytes(dataFragment,0);
+        assertEquals(Trytes.fromTrits(data), loadedData);
     }
 
 
-    private Bundle createMyDataBundle(String dataBundleClassHash, byte[] data) {
-        DataFragment.Builder builder = new DataFragment.Builder(dataBundleClassHash);
-        builder.setData(data);
+    private Bundle createMyDataBundle(ClassFragment classFragment, byte[] data) {
+        DataFragment.Builder builder = new DataFragment.Builder(classFragment);
+        builder.setAttribute(0,data);
         DataFragment.Prepared preparedData = serializationModule.prepare(builder);
         assertEquals(1,preparedData.fromTailToHead().size());
 
@@ -253,8 +259,7 @@ public class SerializationModuleIT {
     }
 
     private Bundle createClassBundle() {
-        ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.withDataSize(33);
+        ClassFragment.Builder builder = new ClassFragment.Builder().addAttribute(33);
         ClassFragment.Prepared preparedClass = serializationModule.prepareClassFragment(builder);
         assertEquals(1,preparedClass.fromTailToHead().size());
 
@@ -333,6 +338,7 @@ public class SerializationModuleIT {
 
     @Test
     public void publishDataFragmentEEETest() throws InterruptedException {
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","publishDataFragment");
@@ -347,7 +353,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;"+TestUtils.randomHash()+";DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;DATA;"+classFragment.getClassHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -358,6 +364,7 @@ public class SerializationModuleIT {
 
     @Test
     public void publishDataFragment2EEETest() throws InterruptedException {
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","publishDataFragment");
@@ -372,10 +379,10 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;"+TestUtils.randomHash()+";DATA;"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
+        ict.submitEffect(env,"2;DATA;"+classFragment.getClassHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash()+";"
                 +TestUtils.randomHash()+";"+TestUtils.randomHash());
 
-        countDownLatch.await(10000, TimeUnit.MILLISECONDS);
+        countDownLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
         if(throwableHolder.throwable!=null){
             fail(throwableHolder.throwable);
@@ -465,6 +472,7 @@ public class SerializationModuleIT {
 
     @Test
     public void prepareDataFragmentEEETest() throws InterruptedException {
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","prepareDataFragment");
@@ -480,7 +488,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"1;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
+        ict.submitEffect(env,"1;DATA;"+classFragment.getClassHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
@@ -491,6 +499,7 @@ public class SerializationModuleIT {
 
     @Test
     public void prepareDataFragment2EEETest() throws InterruptedException {
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","prepareDataFragment");
@@ -506,7 +515,7 @@ public class SerializationModuleIT {
             }
         }, countDownLatch, throwableHolder);
 
-        ict.submitEffect(env,"2;DATA;"+TestUtils.randomHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"
+        ict.submitEffect(env,"2;DATA;"+classFragment.getClassHash()+";"+TestUtils.randomBundleHeadHash()+";"+TestUtils.randomHash()+";"
                 +TestUtils.randomHash()+";"+TestUtils.randomHash());
 
         countDownLatch.await(10000, TimeUnit.MILLISECONDS);
@@ -599,11 +608,11 @@ public class SerializationModuleIT {
 
     @Test
     public void buildGetDataEEETest() throws InterruptedException {
-        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","getData");
-
-        String randomClassHah = TestUtils.randomHash();
-        DataFragment.Builder builder = new DataFragment.Builder(randomClassHah);
-        builder.setData("DATA");
+        final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","getAttribute");
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
+        String randomClassHah = classFragment.getClassHash();
+        DataFragment.Builder builder = new DataFragment.Builder(classFragment);
+        builder.setAttribute(0,"DATA");
         BundleFragment fragment = serializationModule.publishBundleFragment(builder);
         String tx_hash = fragment.getHeadTransaction().hash;
 
@@ -615,11 +624,11 @@ public class SerializationModuleIT {
             String[] split = effect.toString().split(";");
             if(split[0].equals("search")) {
                 assertEquals(2, split.length);
-                assertEquals("DATA", split[1]);
+                assertEquals("DATA99999999999999999999999", split[1]);
                 done2.set(true);
             }
         }, countDownLatch, throwableHolder);
-        ict.submitEffect(env,"search;"+tx_hash);
+        ict.submitEffect(env,"search;"+tx_hash+";0");
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertTrue(done2.get());
         if(throwableHolder.throwable!=null){
@@ -629,11 +638,12 @@ public class SerializationModuleIT {
 
     @Test
     public void registerListenerTest() throws InterruptedException {
-        String randomClassHash = TestUtils.randomHash();
+        ClassFragment classFragment = getRandomPublishedClassFragment(27);
+        String randomClassHash = classFragment.getClassHash();
         String envId = "test0";
         final Environment environment = new Environment(envId);
         serializationModule.registerDataListener(randomClassHash, envId);
-        DataFragment.Builder fragmentBuilder = new DataFragment.Builder(randomClassHash).setData("DATADATA");
+        DataFragment.Builder fragmentBuilder = new DataFragment.Builder(classFragment).setAttribute(0, "DATADATA");
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicBoolean done = new AtomicBoolean(false);
         final ThrowableHolder throwableHolder = new ThrowableHolder();
@@ -641,7 +651,7 @@ public class SerializationModuleIT {
             @Override
             public void onReceive(DataFragment effect) {
                 try {
-                    assertEquals("DATADATA", Trytes.fromTrits(effect.getData()));
+                    assertEquals(Trytes.padRight("DATADATA",27), effect.getAttributeAsTryte(0));
                     done.set(true);
                 }catch (Throwable e){
                     throwableHolder.throwable = e;
@@ -697,5 +707,14 @@ public class SerializationModuleIT {
         } catch (InterruptedException e) {
             //ignore
         }
+    }
+
+    private ClassFragment getRandomPublishedClassFragment(int... attributes){
+        ClassFragment.Builder builder = new ClassFragment.Builder();
+        builder.addReferencedClasshash(TestUtils.randomHash());
+        for(int i:attributes)builder.addAttribute(i);
+        ClassFragment classFragment = serializationModule.publishBundleFragment(builder);
+        safeSleep(100);
+        return classFragment;
     }
 }
