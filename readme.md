@@ -88,7 +88,7 @@ The transaction hash of referenced data-fragment are stored in next extradata-di
     
     /**
     * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced
-    * @return all DataFragment referencing *referencedTransactionHash* from reference at index *index*
+    * @return all DataFragment referencing *referencedTransactionHash*
     */
     public Set<DataFragment> findDataFragmentReferencing(String referencedTransactionHash, DataFragment.Filter filter);
     
