@@ -430,8 +430,9 @@ public class SerializationModuleIT {
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("1")) {
-                assertEquals(2, split.length);
+                assertEquals(3, split.length);
                 assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[2].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -456,8 +457,9 @@ public class SerializationModuleIT {
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("2")) {
-                assertEquals(2, split.length);
+                assertEquals(3, split.length);
                 assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[2].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -481,8 +483,9 @@ public class SerializationModuleIT {
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("3")) {
-                assertEquals(2, split.length);
+                assertEquals(3, split.length);
                 assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[2].length());
                 done.set(true);
             }
         }, countDownLatch, throwableHolder);
@@ -566,8 +569,9 @@ public class SerializationModuleIT {
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("1")) {
-                assertEquals(2, split.length);
+                assertEquals(3, split.length);
                 assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[2].length());
                 assertFalse(Utils.isBundleHead(split[1]));
                 done.set(true);
             }
@@ -593,8 +597,9 @@ public class SerializationModuleIT {
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("2")) {
-                assertEquals(2, split.length);
+                assertEquals(3, split.length);
                 assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[2].length());
                 assertFalse(Utils.isBundleHead(split[1]));
                 done.set(true);
             }
@@ -619,8 +624,9 @@ public class SerializationModuleIT {
         registerReturnHandler(env,effect -> {
             String[] split = effect.toString().split(";");
             if(split[0].equals("3")) {
-                assertEquals(2, split.length);
+                assertEquals(3, split.length);
                 assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[1].length());
+                assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, split[2].length());
                 assertFalse(Utils.isBundleHead(split[1]));
                 done.set(true);
             }

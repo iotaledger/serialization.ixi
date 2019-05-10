@@ -38,13 +38,13 @@ public class SerializationModule extends IxiModule {
      *                       token 1: index, the index of the attribute or reference
      *                       token 2: trytes, either the data or the 81 trytes of the reference)
      * Input  : <classHash>;<trunk_hash>;<branch_hash>;<ATTRIB_OR_REFERENCE>[;<ATTRIB_OR_REFERENCE>]*
-     * Output : <fragment_head_hash>
+     * Output : <fragment_head_hash>;<class_hash>
      */
     private final EEEFunction publishDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishDataFragment"));
 
     /**
      * Input  : <trunk_hash>;<branch_hash>;<attribute_size or referenced_classhash>;[<attribute_size or referenced_classhash>;]*
-     * Output : <fragment_head_hash>
+     * Output : <fragment_head_hash>;<class_hash>
      */
     private final EEEFunction publishClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishClassFragment"));
 
@@ -412,7 +412,7 @@ public class SerializationModule extends IxiModule {
         ClassFragment.Builder builder = classFragmentBuilderFromRequest(request);
         if(builder==null) request.submitReturn(ixi,"");
         ClassFragment fragment = publishBundleFragment(builder);
-        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash+";"+fragment.getClassHash());
     }
 
     private ClassFragment.Builder classFragmentBuilderFromRequest(EEEFunction.Request request) {
@@ -480,7 +480,7 @@ public class SerializationModule extends IxiModule {
     private void processPrepareClassRequest(EEEFunction.Request request) {
         ClassFragment.Builder builder = classFragmentBuilderFromRequest(request);
         ClassFragment fragment = prepareBundleFragment(builder);
-        request.submitReturn(ixi, fragment.getHeadTransaction().hash);
+        request.submitReturn(ixi, fragment.getHeadTransaction().hash+";"+fragment.getClassHash());
     }
 
     private void processGetAttributeRequest(EEEFunction.Request request) {
