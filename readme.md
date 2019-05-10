@@ -87,12 +87,11 @@ The transaction hash of referenced data-fragment are stored in next extradata-di
     public Set<DataFragment> findDataFragmentForClassHash(String classHash);
     
     /**
-    * @param classHash                 the classHash of the searched fragments
     * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced
-    * @param index                     index of the reference
     * @return all DataFragment referencing *referencedTransactionHash* from reference at index *index*
     */
-    public Set<DataFragment> findDataFragmentReferencing(String classHash, String referencedTransactionHash, int index);
+    public Set<DataFragment> findDataFragmentReferencing(String referencedTransactionHash, DataFragment.Filter filter);
+    
     /**
     * @return the ClassFragment with head transaction identified by transactionHash,
     * or null if the transaction is not the head of a valid ClassFragment.
