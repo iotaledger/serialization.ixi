@@ -4,6 +4,8 @@ import org.iota.ict.ixi.TestUtils;
 import org.iota.ict.utils.Trytes;
 import org.junit.jupiter.api.Test;
 
+import javax.xml.crypto.Data;
+
 import static org.iota.ict.utils.Trytes.NULL_HASH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -86,5 +88,63 @@ public class DataFragmentTest {
         assertTrue(dataFragment.hasHeadFlag(dataFragment.getTailTransaction()));
         assertTrue(dataFragment.hasTailFlag(dataFragment.getHeadTransaction()));
         assertTrue(dataFragment.hasTailFlag(dataFragment.getTailTransaction()));
+    }
+
+    @Test
+    public void testVariableSizeAttribute() {
+        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(0).build();
+        DataFragment dataFragment = new DataFragment.Builder(classFragment).setAttribute(0,"MY9DATA").build();
+        assertEquals("MY9DATA",dataFragment.getAttributeAsTryte(0));
+    }
+
+    @Test
+    public void testVariableSizeAttribute2() {
+        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(0).addAttribute(0).build();
+        DataFragment dataFragment = new DataFragment.Builder(classFragment)
+                .setAttribute(0,"MY9DATA")
+                .setAttribute(1,"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                .build();
+        assertEquals("MY9DATA",dataFragment.getAttributeAsTryte(0));
+        assertEquals("ABCDEFGHIJKLMNOPQRSTUVWXYZ",dataFragment.getAttributeAsTryte(1));
+    }
+
+    @Test
+    public void testVariableSizeAttribute3() {
+        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(7).addAttribute(0).build();
+        DataFragment dataFragment = new DataFragment.Builder(classFragment)
+                .setAttribute(0,"MY9DATA")
+                .setAttribute(1,"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                .build();
+        assertEquals("MY9DATA",dataFragment.getAttributeAsTryte(0));
+        assertEquals("ABCDEFGHIJKLMNOPQRSTUVWXYZ",dataFragment.getAttributeAsTryte(1));
+    }
+
+
+    @Test
+    public void testVariableSizeAttribute4() {
+        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(7).addAttribute(0).addAttribute(0).build();
+        String randomData = TestUtils.random(10000);
+        DataFragment dataFragment = new DataFragment.Builder(classFragment)
+                .setAttribute(0,"MY9DATA")
+                .setAttribute(1,"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                .setAttribute(2,randomData)
+                .build();
+        assertEquals("MY9DATA",dataFragment.getAttributeAsTryte(0));
+        assertEquals("ABCDEFGHIJKLMNOPQRSTUVWXYZ",dataFragment.getAttributeAsTryte(1));
+        assertEquals(randomData,dataFragment.getAttributeAsTryte(2));
+    }
+
+
+    @Test
+    public void testVariableSizeAttribute5() {
+        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(7).addAttribute(0).addAttribute(0).build();
+        String randomData = TestUtils.random(10000);
+        DataFragment dataFragment = new DataFragment.Builder(classFragment)
+                .setAttribute(0,"MY9DATA")
+                .setAttribute(2,randomData)
+                .build();
+        assertEquals("MY9DATA",dataFragment.getAttributeAsTryte(0));
+        assertEquals("",dataFragment.getAttributeAsTryte(1));
+        assertEquals(randomData,dataFragment.getAttributeAsTryte(2));
     }
 }

@@ -36,6 +36,7 @@ public class ClassFragment extends BundleFragment {
     private int[] attributesLength;
     private int[] attributesOffsets;
     private String[] referencedClassHash;
+    private List<Integer> variableSizeAttributes = new ArrayList<>();
 
     public ClassFragment(Transaction headTransaction) {
         super(headTransaction);
@@ -51,6 +52,9 @@ public class ClassFragment extends BundleFragment {
                 attributesOffsets[i] = 0;
             }else{
                 attributesOffsets[i] = attributesOffsets[i-1]+attributesLength[i];
+            }
+            if(attributesLength[i]==0){
+                variableSizeAttributes.add(i);
             }
             currentOffset += 6;
         }
@@ -88,6 +92,9 @@ public class ClassFragment extends BundleFragment {
         return isHead(transaction);
     }
 
+    public List<Integer> getVariableSizeAttributeIndexes(){
+        return variableSizeAttributes;
+    }
     public String getClassHash(){
         if(classHash==null){
             classHash = computeClassHash();
@@ -168,7 +175,6 @@ public class ClassFragment extends BundleFragment {
 
         public Builder addAttribute(int tryteSize){
             assert tryteSize < 193710245;
-            assert tryteSize%3 == 0;
             attributes.add(Trytes.fromNumber(BigInteger.valueOf(tryteSize),6));
             dataSize += tryteSize;
             return this;

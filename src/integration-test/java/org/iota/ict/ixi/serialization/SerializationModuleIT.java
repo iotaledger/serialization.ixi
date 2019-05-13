@@ -757,12 +757,12 @@ public class SerializationModuleIT {
     public void findReferencingEEETest() throws InterruptedException {
         ClassFragment classFragment = getRandomPublishedClassFragment(27);
         ClassFragment classFragment2 = getRandomPublishedClassFragment(27);
-        safeSleep(200);
+        safeSleep(100);
 
         DataFragment.Builder referencedBuilder = new DataFragment.Builder(classFragment);
         referencedBuilder.setAttribute(0,"I9AM9REFERENCED");
         DataFragment referenced = serializationModule.publishBundleFragment(referencedBuilder);
-        safeSleep(150);
+        safeSleep(100);
 
         DataFragment.Builder ref1Builder = new DataFragment.Builder(classFragment);
         ref1Builder.setAttribute(0,"TO9REFERENCED9A");
@@ -777,7 +777,7 @@ public class SerializationModuleIT {
         DataFragment.Builder ref3Builder = new DataFragment.Builder(classFragment);
         ref3Builder.setAttribute(0,"NOT9REFERENCING");
         DataFragment ref3 = serializationModule.publishBundleFragment(ref3Builder);
-        safeSleep(500);
+        safeSleep(100);
 
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi","findReferencing");
         final CountDownLatch countDownLatch = new CountDownLatch(1);

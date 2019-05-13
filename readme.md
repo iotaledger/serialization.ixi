@@ -33,6 +33,7 @@ The message of ClassFragment encode metadata about a data fragment :
 The following trits of the message field encode the sizes of attributes of the DataFragment.
 An attribute is a slice of the message of a DataFragment.
 The size of an attribute is encoded on 6 trytes.
+When the size of the attribute is unknown or variable : the size is encoded as 0 ('999999')
 
 Address field of the head transaction of a ClassFragment is always the NullHash.  
 Extradata-digest and address fields of a ClassFragment store the ClassHash of referenced fragments.
@@ -46,8 +47,10 @@ We define a DataFragment as a Bundle fragment using trit at tag[6] set to 1 to i
 and the trit at tag[5] to indicate the fragment-tail-transaction.
 
 The address field of the headTransaction is reserved to store the ClassHash of the ClassFragment for this DataFragment.
-The message field of a DataFragment encode the attributes values.
 The transaction hash of referenced data-fragment are stored in next extradata-digest and address fields of bundle fragment transactions.
+
+The message field of a DataFragment encode the attributes values. An attribute of variable size is encoded in two 
+parts : the 6 first trytes encode the size in trytes, then followed by the data itself.
 
 <p align="center"><img src="docs/fragment-anatomy.png" width="500"/></p>
 

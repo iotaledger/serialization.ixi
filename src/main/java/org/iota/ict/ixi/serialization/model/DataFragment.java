@@ -6,29 +6,32 @@ import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
 import java.math.BigInteger;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.iota.ict.utils.Trytes.NULL_HASH;
 
 @SuppressWarnings("WeakerAccess")
 public class DataFragment extends BundleFragment {
 
-    private static final int LENGTH_OF_SIZE_FIELD = ClassFragment.TRYTE_LENGTH_OF_SIZE_FIELD;
 
-    private int dataSizeInTrits;
-    private int refCount;
-    private int attributeCount;
     private ClassFragment classFragment;
+    private int[][] offsetAndLength;
 
     public DataFragment(Transaction headTransaction, ClassFragment classFragment){
         super(headTransaction);
         this.classFragment = classFragment;
-        dataSizeInTrits = classFragment.getDataSize();
-        refCount = classFragment.getRefCount();
-        attributeCount = classFragment.getAttributeCount();
+        offsetAndLength = new int[classFragment.getAttributeCount()][2];
+        int currentOffset = 0;
+        for(int i=0;i<offsetAndLength.length;i++){
+            int attributeLength = classFragment.getTryteLengthForAttribute(i);
+            if(attributeLength==0){
+                //variableSize
+                attributeLength = Trytes.toNumber(getSlice(currentOffset, 6)).intValue();
+                currentOffset += 6;
+            }
+            offsetAndLength[i] = new int[]{currentOffset, attributeLength};
+            currentOffset += attributeLength;
+        }
     }
 
     public String getReference(int index){
@@ -69,8 +72,12 @@ public class DataFragment extends BundleFragment {
     }
 
     public String getAttributeAsTryte(int attributeIndex) {
-        int startIndex = classFragment.getTryteIndexForAttribute(attributeIndex);
-        int length = classFragment.getTryteLengthForAttribute(attributeIndex);
+        int startIndex = offsetAndLength[attributeIndex][0];
+        int length = offsetAndLength[attributeIndex][1];;
+        return getSlice(startIndex, length);
+    }
+
+    private String getSlice(int startIndex, int length) {
         StringBuilder sb = new StringBuilder();
         Transaction tx = getHeadTransaction();
         while(startIndex>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
@@ -154,7 +161,9 @@ public class DataFragment extends BundleFragment {
 
         private void prepareTransactionBuilders() {
             int refCount = referenceHashes.size()==0?0:1+Collections.max(referenceHashes.keySet());
-            int transactionsRequiredForData = data==null ? 1 : 1 + (classFragment.getDataSize() / Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+            int dataSize = classFragment.getDataSize();
+            dataSize += variableSizeAttributes(classFragment.getVariableSizeAttributeIndexes());
+            int transactionsRequiredForData = data==null ? 1 : 1 + (dataSize / Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
             int transactionsRequiredForReferences = 1 + (refCount)/2;
             int transactionsRequired = Math.max(transactionsRequiredForData, transactionsRequiredForReferences);
 
@@ -165,11 +174,22 @@ public class DataFragment extends BundleFragment {
 
             StringBuilder dataTrytes = new StringBuilder();
             for(int i=0;i<classFragment.getAttributeCount();i++){
+
+                if(classFragment.getVariableSizeAttributeIndexes().contains(i)){
+                    dataTrytes.append(Trytes.fromNumber(data.get(i)==null ? BigInteger.ZERO : BigInteger.valueOf(data.get(i).length()),6));
+                }
+
                 String attributeValue = data.get(i);
                 if(attributeValue==null){
                     attributeValue = "";
                 }
-                dataTrytes.append(Trytes.padRight(attributeValue,classFragment.getTryteLengthForAttribute(i)));
+                if(classFragment.getTryteLengthForAttribute(i)>0 && attributeValue.length()<classFragment.getTryteLengthForAttribute(i)) {
+                    attributeValue = Trytes.padRight(attributeValue, classFragment.getTryteLengthForAttribute(i));
+                }
+                if(classFragment.getTryteLengthForAttribute(i)>0 && attributeValue.length()>classFragment.getTryteLengthForAttribute(i)){
+                    attributeValue = attributeValue.substring(0,classFragment.getTryteLengthForAttribute(i));
+                }
+                dataTrytes.append(attributeValue);
             }
             int trytesOffset = 0;
             for(int i=0;i<transactionsRequired;i++){
@@ -191,6 +211,14 @@ public class DataFragment extends BundleFragment {
                 addFirst(builder);
                 builder = new TransactionBuilder();
             }
+        }
+
+        private int variableSizeAttributes(List<Integer> variableSizeAttributeIndexes) {
+            int ret = 0;
+            for(int index : variableSizeAttributeIndexes){
+                ret += Optional.ofNullable( data.get(index) ).orElse( "" ).length();
+            }
+            return ret;
         }
 
         public Builder setAttribute(int i, byte[] data) {
