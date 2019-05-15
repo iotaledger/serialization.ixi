@@ -1,51 +1,46 @@
 package org.iota.ict.ixi.serialization.model;
 
 import com.iota.curl.IotaCurlHash;
-import org.iota.ict.ixi.serialization.util.SerializableField;
 import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
 
-import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
 public class ClassFragment extends BundleFragment {
 
-    public static int CURL_ROUNDS_CLASS_HASH = 27;
+    public static final int CURL_ROUNDS_CLASS_HASH = 27;
 
-    private static final int LENGTH_OF_SIZE_FIELD = 81;
-    private static final int LENGTH_OF_REFCOUNT_FIELD = 81;
-    private static final int LENGTH_OF_ATTRIBUTECOUNT_FIELD = 81;
-    private static final int LENGTH_OF_DATA = LENGTH_OF_REFCOUNT_FIELD+LENGTH_OF_SIZE_FIELD+LENGTH_OF_ATTRIBUTECOUNT_FIELD;
-    public static final int TRYTE_LENGTH_OF_SIZE_FIELD = LENGTH_OF_SIZE_FIELD/3;
-    public static final int TRYTE_LENGTH_OF_REFCOUNT_FIELD = LENGTH_OF_REFCOUNT_FIELD/3;
-    public static final int TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD = LENGTH_OF_ATTRIBUTECOUNT_FIELD/3;
-    private static final int TRYTE_LENGTH_OF_DATA = TRYTE_LENGTH_OF_REFCOUNT_FIELD+TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD;
-    private static final int ATTRIBUTE_HASH_TRITSIZE = 243;
+    public static final int TRYTE_LENGTH_OF_SIZE_FIELD = 27;
+    public static final int TRYTE_LENGTH_OF_REFCOUNT_FIELD = 27;
+    public static final int TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD = 27;
+    private static final int TRYTE_LENGTH_OF_HEADER = TRYTE_LENGTH_OF_REFCOUNT_FIELD+TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD;
 
-    private int dataSize;
-    private int refCount;
-    private int attributeCount;
+    private final int dataSize;
+    private final int refCount;
+    private final int attributeCount;
     private String classHash;
-    private int[] attributesLength;
-    private int[] attributesOffsets;
-    private String[] referencedClassHash;
-    private List<Integer> variableSizeAttributes = new ArrayList<>();
+    private final int[] attributesLength;
+    private final String[] referencedClassHash;
+    private final List<Integer> variableSizeAttributes = new ArrayList<>();
 
     public ClassFragment(Transaction headTransaction) {
         super(headTransaction);
+
+        //extracting the metadata so that we have a quick access to it and
+        //more importantly: the existence of underlying transactions is not required when accessing the metadata at a later point in time.
         dataSize = Trytes.toNumber(headTransaction.signatureFragments().substring(0, TRYTE_LENGTH_OF_SIZE_FIELD)).intValue();
         refCount = Trytes.toNumber(headTransaction.signatureFragments().substring(TRYTE_LENGTH_OF_SIZE_FIELD,TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD)).intValue();
         attributeCount = Trytes.toNumber(headTransaction.signatureFragments().substring(TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD,TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD+TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD)).intValue();
         attributesLength = new int[attributeCount];
-        attributesOffsets = new int[attributeCount];
-        int currentOffset = TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD+TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD;
+        int[] attributesOffsets = new int[attributeCount];
+
+        //parse attributes metadata
+        int currentOffset = TRYTE_LENGTH_OF_HEADER;
         for(int i=0;i<attributeCount;i++){
             attributesLength[i] = Trytes.toNumber(headTransaction.signatureFragments().substring(currentOffset, currentOffset+6)).intValue();
             if(i==0){
@@ -58,6 +53,8 @@ public class ClassFragment extends BundleFragment {
             }
             currentOffset += 6;
         }
+
+        //parse references metadata
         referencedClassHash = new String[refCount];
         Transaction tx = headTransaction;
         int i = 0;
@@ -66,10 +63,8 @@ public class ClassFragment extends BundleFragment {
                 referencedClassHash[i] = tx.extraDataDigest();
                 i++;
             }else{
-                if(i<refCount){
-                    referencedClassHash[i] = tx.address();
-                    i++;
-                }
+                referencedClassHash[i] = tx.address();
+                i++;
                 if(i<refCount){
                     referencedClassHash[i] = tx.extraDataDigest();
                     i++;
@@ -79,6 +74,7 @@ public class ClassFragment extends BundleFragment {
             if(tx==null){
                 while(i<refCount){
                     referencedClassHash[i] = Trytes.NULL_HASH;
+                    i++;
                 }
             }
         }
@@ -95,6 +91,7 @@ public class ClassFragment extends BundleFragment {
     public List<Integer> getVariableSizeAttributeIndexes(){
         return variableSizeAttributes;
     }
+
     public String getClassHash(){
         if(classHash==null){
             classHash = computeClassHash();
@@ -123,11 +120,14 @@ public class ClassFragment extends BundleFragment {
         }
         i = 0;
         while(i<attributeCount){
-            sb.append(Trytes.fromNumber(BigInteger.valueOf(attributesLength[i]),6));
+            if(attributesLength[i]==0){
+                sb.append(Trytes.fromNumber(BigInteger.valueOf(6), 6));
+            }else {
+                sb.append(Trytes.fromNumber(BigInteger.valueOf(attributesLength[i]), 6));
+            }
             i+=1;
         }
-        String hash = IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_CLASS_HASH);
-        return hash;
+        return IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_CLASS_HASH);
     }
 
     public static boolean isTail(Transaction transaction) {
@@ -146,28 +146,22 @@ public class ClassFragment extends BundleFragment {
         }
     }
 
-    public int getTryteIndexForAttribute(int attributeIndex) {
-        return attributesOffsets[attributeIndex];
-    }
-
     protected int getTryteLengthForAttribute(int attributeIndex){
         return attributesLength[attributeIndex];
     }
 
+
     public static class Builder extends BundleFragment.Builder<ClassFragment> {
 
         private int dataSize;
-        private List<String> references = new ArrayList<>();
-        private List<String> attributes = new ArrayList<>();
+        private final List<String> references = new ArrayList<>();
+        private final List<String> attributes = new ArrayList<>();
 
-        public Builder withDataSize(int size){
-            this.dataSize = size;
-            return this;
-        }
         public Builder addReferencedClasshash(String referencedClassHash){
             references.add(referencedClassHash);
             return this;
         }
+
         public Builder addReferencedClass(ClassFragment classFragment){
             references.add(classFragment.getClassHash());
             return this;
@@ -177,17 +171,8 @@ public class ClassFragment extends BundleFragment {
             assert tryteSize < 193710245;
             attributes.add(Trytes.fromNumber(BigInteger.valueOf(tryteSize),6));
             dataSize += tryteSize;
-            return this;
-        }
-
-        public Builder addAttributesFromClass(Class clazz){
-            Map<Integer, Field> javaFields = extractSerializableFields(clazz);
-            for(int i=0;i<javaFields.size();i++){
-                Field field = javaFields.get(i);
-                if(field==null){
-                    throw new IllegalArgumentException("Class "+clazz.getName()+" is not a valid serializable class. Indexes are wrong. (near index "+i+")");
-                }
-                addAttribute(field.getAnnotation(SerializableField.class).tryteLength());
+            if(tryteSize==0){
+                dataSize += 6;
             }
             return this;
         }
@@ -211,8 +196,8 @@ public class ClassFragment extends BundleFragment {
 
         private void prepareTransactionBuilders() {
             int refCount = references.size();
-            int tritsRequiredForData = LENGTH_OF_DATA + (6*attributes.size()*3);
-            int transactionsRequiredForData = 1 + (tritsRequiredForData/Transaction.Field.SIGNATURE_FRAGMENTS.tritLength);
+            int trytesRequiredForData = TRYTE_LENGTH_OF_HEADER + (6*attributes.size());
+            int transactionsRequiredForData = 1 + (trytesRequiredForData/Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
             int transactionsRequiredForReferences = 1 + refCount/2;
             int transactionsRequired = Math.max(transactionsRequiredForData, transactionsRequiredForReferences);
 
@@ -222,8 +207,8 @@ public class ClassFragment extends BundleFragment {
             int messageOffset = 0;
 
             StringBuilder dataTrytes = new StringBuilder();
-            for(int i=0;i<attributes.size();i++){
-                dataTrytes.append(attributes.get(i));
+            for (String attribute : attributes) {
+                dataTrytes.append(attribute);
             }
             int trytesOffset = 0;
             for(int i=0;i<transactionsRequired;i++){
@@ -232,19 +217,16 @@ public class ClassFragment extends BundleFragment {
                     stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(dataSize),TRYTE_LENGTH_OF_SIZE_FIELD));
                     stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(references.size()),TRYTE_LENGTH_OF_REFCOUNT_FIELD));
                     stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(attributes.size()),TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD));
-                    messageOffset = TRYTE_LENGTH_OF_DATA;
+                    messageOffset = TRYTE_LENGTH_OF_HEADER;
                 }
 
                 if(i>0) {
-                    messageOffset = 0;
                     if (currentRefIndex < references.size()) {
-                        String address = references.get(currentRefIndex++);
-                        builder.address = address;
+                        builder.address = references.get(currentRefIndex++);
                     }
                 }
                 if(currentRefIndex < references.size()) {
-                    String extra = references.get(currentRefIndex++);
-                    builder.extraDataDigest = extra;
+                    builder.extraDataDigest = references.get(currentRefIndex++);
                 }
 
                 if(trytesOffset<dataTrytes.length()){
@@ -276,7 +258,7 @@ public class ClassFragment extends BundleFragment {
 
     public static class Prepared {
 
-        private ClassFragment.Builder builder;
+        private final ClassFragment.Builder builder;
 
         Prepared(ClassFragment.Builder builder){
             this.builder = builder;
@@ -287,16 +269,4 @@ public class ClassFragment extends BundleFragment {
         }
     }
 
-
-    private static Map<Integer, Field> extractSerializableFields(Class clazz) {
-        Map<Integer, Field> javaFields = new HashMap<>();
-        Field[] fields = clazz.getFields();
-        for (Field field : fields) {
-            if (field.getAnnotation(SerializableField.class) != null) {
-                SerializableField annotation = field.getAnnotation(SerializableField.class);
-                javaFields.put(annotation.index(), field);
-            }
-        }
-        return javaFields;
-    }
 }

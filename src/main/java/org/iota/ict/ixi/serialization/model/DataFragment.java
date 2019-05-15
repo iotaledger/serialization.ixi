@@ -1,6 +1,5 @@
 package org.iota.ict.ixi.serialization.model;
 
-import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
@@ -14,18 +13,21 @@ import static org.iota.ict.utils.Trytes.NULL_HASH;
 public class DataFragment extends BundleFragment {
 
 
-    private ClassFragment classFragment;
-    private int[][] offsetAndLength;
+    private final ClassFragment classFragment;
+
+    //store the offset and length of each attribute
+    private final int[][] offsetAndLength;
 
     public DataFragment(Transaction headTransaction, ClassFragment classFragment){
-        super(headTransaction);
+        super(headTransaction); //we keep a WeakReference to the transaction
+
         this.classFragment = classFragment;
         offsetAndLength = new int[classFragment.getAttributeCount()][2];
         int currentOffset = 0;
         for(int i=0;i<offsetAndLength.length;i++){
             int attributeLength = classFragment.getTryteLengthForAttribute(i);
             if(attributeLength==0){
-                //variableSize
+                //variableSize attribute. Effective size is stored in the 6 first trits
                 attributeLength = Trytes.toNumber(getSlice(currentOffset, 6)).intValue();
                 currentOffset += 6;
             }
@@ -35,8 +37,9 @@ public class DataFragment extends BundleFragment {
     }
 
     public String getReference(int index){
-        index++;
+        index++;  //first address field store the classhash so it is skipped
         Transaction tx = getHeadTransaction();
+        if(tx==null) return NULL_HASH;
         while(index>1){
             tx = tx.getTrunk();
             if(tx==null) {
@@ -64,6 +67,7 @@ public class DataFragment extends BundleFragment {
     }
 
     public String getClassHash() {
+        if(getHeadTransaction()==null) return NULL_HASH;
         return getHeadTransaction().address();
     }
 
@@ -71,15 +75,28 @@ public class DataFragment extends BundleFragment {
         return classFragment;
     }
 
+    /**
+     * @param attributeIndex : index of an attribute
+     * @return the tryte string representing the value of this attribute or the empty string when the value is not available.
+     * @throws ArrayIndexOutOfBoundsException when attributeIndex is not in range
+     */
     public String getAttributeAsTryte(int attributeIndex) {
         int startIndex = offsetAndLength[attributeIndex][0];
-        int length = offsetAndLength[attributeIndex][1];;
+        int length = offsetAndLength[attributeIndex][1];
         return getSlice(startIndex, length);
     }
 
+    /**
+     * Extract a slice from the fragment message (i.e. concat of all message fields of fragment)
+     * @param startIndex slice start index
+     * @param length slice length
+     * @return the tryte string starting at startIndex with specified length or the empty string
+     * when the data is not available (because RingTangle may drop old transactions).
+     */
     private String getSlice(int startIndex, int length) {
         StringBuilder sb = new StringBuilder();
         Transaction tx = getHeadTransaction();
+        if(tx==null) return "";
         while(startIndex>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
             tx = tx.getTrunk();
             if(tx==null) return Trytes.padRight("",length);
@@ -92,7 +109,7 @@ public class DataFragment extends BundleFragment {
         int remaining = length -sb.length();
         while(remaining>0) {
             tx = tx.getTrunk();
-            if (tx == null) return Trytes.padRight(sb.toString(), length);
+            if (tx == null) return "";
             if(remaining>Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength){
                 remaining -= Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength;
                 sb.append(tx.signatureFragments());
@@ -104,13 +121,12 @@ public class DataFragment extends BundleFragment {
         return sb.toString();
     }
 
-
     public static class Builder extends BundleFragment.Builder<DataFragment> {
 
-        private Map<Integer, String> referenceHashes = new HashMap<>();
-        private Map<Integer,String> data = new HashMap<>();
-        private String classHash;
-        private ClassFragment classFragment;
+        private final Map<Integer, String> referenceHashes = new HashMap<>();
+        private final Map<Integer,String> data = new HashMap<>();
+        private final String classHash;
+        private final ClassFragment classFragment;
 
         public Builder(ClassFragment classFragment){
             this.classFragment = classFragment;
@@ -128,20 +144,22 @@ public class DataFragment extends BundleFragment {
             return new DataFragment(lastTransaction, classFragment);
         }
 
-        public void setReference(int index, String hash){
+        public Builder setReference(int index, String hash){
             if(hash==null){
                 referenceHashes.remove(index);
             }else{
                 referenceHashes.put(index, hash);
             }
+            return this;
         }
 
-        public void setReference(int index, DataFragment data){
-            if(data==null){
+        public Builder setReference(int index, DataFragment data){
+            if(data==null || data.getHeadTransaction()==null){
                 setReference(index,(String)null);
             }else{
                 setReference(index, data.getHeadTransaction().hash);
             }
+            return this;
         }
 
         private void setTags() {
@@ -163,7 +181,7 @@ public class DataFragment extends BundleFragment {
             int refCount = referenceHashes.size()==0?0:1+Collections.max(referenceHashes.keySet());
             int dataSize = classFragment.getDataSize();
             dataSize += variableSizeAttributes(classFragment.getVariableSizeAttributeIndexes());
-            int transactionsRequiredForData = data==null ? 1 : 1 + (dataSize / Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
+            int transactionsRequiredForData = 1 + (dataSize / Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
             int transactionsRequiredForReferences = 1 + (refCount)/2;
             int transactionsRequired = Math.max(transactionsRequiredForData, transactionsRequiredForReferences);
 
@@ -242,7 +260,7 @@ public class DataFragment extends BundleFragment {
 
     public static class Prepared {
 
-        private Builder builder;
+        private final Builder builder;
 
         Prepared(Builder builder){
             this.builder = builder;
@@ -256,13 +274,8 @@ public class DataFragment extends BundleFragment {
     public interface Filter {
         boolean match(DataFragment dataFragment);
 
-        public static Filter and(Filter f0, Filter f1){
-            return new Filter() {
-                @Override
-                public boolean match(DataFragment dataFragment) {
-                    return f0.match(dataFragment) && f1.match(dataFragment);
-                }
-            };
+        static Filter and(Filter f0, Filter f1){
+            return dataFragment -> f0.match(dataFragment) && f1.match(dataFragment);
         }
     }
 

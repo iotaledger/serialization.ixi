@@ -1,7 +1,8 @@
 package org.iota.ict.ixi;
 
+import org.iota.ict.ixi.serialization.SerializationModule;
+import org.iota.ict.ixi.serialization.model.ClassFragment;
 import org.iota.ict.ixi.serialization.util.Utils;
-import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 
 import java.security.SecureRandom;
@@ -9,7 +10,7 @@ import java.security.SecureRandom;
 public class TestUtils {
 
     private static final String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ9";
-    private static SecureRandom r = new SecureRandom();
+    private static final SecureRandom r = new SecureRandom();
 
     public static String random(int tryteLength){
         StringBuilder sb = new StringBuilder(tryteLength);
@@ -38,10 +39,20 @@ public class TestUtils {
         return ret;
     }
 
-    public static String randomValidTransactionHash(){
-        String s = random(81);
-        byte[] trits = Trytes.toTrits(s);
-        System.arraycopy(new byte[Constants.MIN_WEIGHT_MAGNITUDE],0,trits,243-Constants.MIN_WEIGHT_MAGNITUDE, Constants.MIN_WEIGHT_MAGNITUDE);
-        return Trytes.fromTrits(trits);
+    public static ClassFragment getRandomPublishedClassFragment(SerializationModule serializationModule, int... attributes) {
+        ClassFragment.Builder builder = new ClassFragment.Builder();
+        builder.addReferencedClasshash(TestUtils.randomHash());
+        for (int i : attributes) builder.addAttribute(i);
+        ClassFragment classFragment = serializationModule.publishBundleFragment(builder);
+        safeSleep(100);
+        return classFragment;
+    }
+
+    public static void safeSleep(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            //ignore
+        }
     }
 }

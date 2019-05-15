@@ -39,7 +39,7 @@ Address field of the head transaction of a ClassFragment is always the NullHash.
 Extradata-digest and address fields of a ClassFragment store the ClassHash of referenced fragments.
 A reference to an arbitrary transaction is denoted by the NULL_HASH. This allow the creation of "chain" of DataFragment, but also referencing non DataFragment.
 
-We define the *ClassHash* as the hash (Curl-27) of the concatanation: &lt;referenced ClassHash&gt;&lt;attributes size&gt;
+We define the *ClassHash* as the hash (Curl-27) of the concatenation: &lt;referenced ClassHash&gt;&lt;attributes size&gt;
 
 ### DataFragment
 

@@ -15,6 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("WeakerAccess")
 public class SerializationModuleTest {
 
     private static SerializationModule serializationModule;

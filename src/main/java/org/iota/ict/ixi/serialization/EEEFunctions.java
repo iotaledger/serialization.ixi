@@ -10,6 +10,7 @@ import org.iota.ict.utils.Trytes;
 import java.util.ArrayList;
 import java.util.Set;
 
+@SuppressWarnings("WeakerAccess")
 public class EEEFunctions {
 
     private final SerializationModule serializationModule;
@@ -123,15 +124,7 @@ public class EEEFunctions {
         String[] split = argument.split(";");
         ClassFragment.Builder builder = new ClassFragment.Builder();
         for(String s:split){
-            if(Trytes.NULL_HASH.equals(s)){
-                builder.addReferencedClasshash(s);
-            }else {
-                try {
-                    builder.addAttribute(Integer.valueOf(s));
-                } catch (NumberFormatException e) {
-                    builder.addReferencedClasshash(s);
-                }
-            }
+            appendAttributeOrRef(builder, s);
         }
         String ret = builder.build().getClassHash();
         request.submitReturn(ixi, ret);
@@ -157,26 +150,30 @@ public class EEEFunctions {
     private ClassFragment.Builder classFragmentBuilderFromRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.setReferencedTrunk(split[0]);
-        builder.setReferencedBranch(split[1]);
+        ClassFragment.Builder builder = (ClassFragment.Builder) new ClassFragment.Builder()
+                .setReferencedTrunk(split[0])
+                .setReferencedBranch(split[1]);
         if (split.length > 2) {
             int i = 3;
             while (i < split.length) {
                 String s = split[i];
-                if(Trytes.NULL_HASH.equals(s)){
-                    builder.addReferencedClasshash(s);
-                }else {
-                    try {
-                        builder.addAttribute(Integer.valueOf(s));
-                    } catch (NumberFormatException e) {
-                        builder.addReferencedClasshash(s);
-                    }
-                }
+                appendAttributeOrRef(builder, s);
                 i++;
             }
         }
         return builder;
+    }
+
+    private void appendAttributeOrRef(ClassFragment.Builder builder, String s) {
+        if (Trytes.NULL_HASH.equals(s)) {
+            builder.addReferencedClasshash(s);
+        } else {
+            try {
+                builder.addAttribute(Integer.valueOf(s));
+            } catch (NumberFormatException e) {
+                builder.addReferencedClasshash(s);
+            }
+        }
     }
 
     private void processPrepareDataRequest(EEEFunction.Request request) {
@@ -208,7 +205,7 @@ public class EEEFunctions {
                 String trytes = tokens[2];
                 if("A".equals(tokens[0])){
                     builder.setAttribute(index,trytes);
-                }else if("R".equals(tokens)){
+                }else if("R".equals(tokens[0])){
                     builder.setReference(index, trytes);
                 }
                 i++;
@@ -287,12 +284,8 @@ public class EEEFunctions {
                 String fieldValue = split[i+1];
                 i +=2;
 
-                DataFragment.Filter itemFilter = new DataFragment.Filter() {
-                    @Override
-                    public boolean match(DataFragment dataFragment) {
-                        return dataFragment.getAttributeAsTryte(fieldIndex).startsWith(fieldValue);
-                    }
-                };
+                DataFragment.Filter itemFilter =
+                        dataFragment -> dataFragment.getAttributeAsTryte(fieldIndex).startsWith(fieldValue);
 
                 if(filter==null){
                     filter = itemFilter;
@@ -319,10 +312,11 @@ public class EEEFunctions {
 
     private class EEERequestHandler extends Thread {
 
-        EEEHandler handler;
-        EEEFunction eeeFunction;
+        final EEEHandler handler;
+        final EEEFunction eeeFunction;
 
         public EEERequestHandler(EEEFunction eeeFunction, EEEHandler handler) {
+            setName("EEEFunction-"+eeeFunction.getEnvironment().toString());
             this.handler = handler;
             this.eeeFunction = eeeFunction;
         }

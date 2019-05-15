@@ -13,28 +13,17 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 
-sourceSets {
-    integrationTest {
-        java {
-            compileClasspath += main.output + test.output
-            runtimeClasspath += main.output + test.output
-            srcDir file('src/integration-test/java')
-        }
-        resources.srcDir file('src/integration-test/resources')
-    }
-}
-
-configurations {
-    integrationTestCompile.extendsFrom testCompileOnly, testCompile
-    integrationTestRuntime.extendsFrom testRuntime
-}
-
 dependencies {
     compileOnly ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
     runtimeClasspath ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
-    testCompileOnly ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
+    testCompile ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.4.1'
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.4.1'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.21.0'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 task ixi(type: Jar) {
@@ -44,12 +33,3 @@ task ixi(type: Jar) {
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
-
-task integrationTest(type: Test) {
-    testClassesDirs = sourceSets.integrationTest.output.classesDirs
-    classpath = sourceSets.integrationTest.runtimeClasspath
-    outputs.upToDateWhen { false }
-}
-
-check.dependsOn integrationTest
-integrationTest.mustRunAfter test

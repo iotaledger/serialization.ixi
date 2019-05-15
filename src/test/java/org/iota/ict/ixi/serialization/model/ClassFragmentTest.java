@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("WeakerAccess")
 public class ClassFragmentTest  {
 
     @Test
@@ -31,12 +32,10 @@ public class ClassFragmentTest  {
     @Test
     public void buildClassFragmentWithOneRefTest(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.withDataSize(25);
         ClassFragment classFragment = builder.build();
 
-        builder = new ClassFragment.Builder();
-        builder.withDataSize(0);
-        builder.addReferencedClass(classFragment);
+        builder = new ClassFragment.Builder()
+                .addReferencedClass(classFragment);
         ClassFragment classFragment2 = builder.build();
         assertEquals(0, classFragment2.getDataSize());
         assertEquals(1, classFragment2.getRefCount());
@@ -49,18 +48,14 @@ public class ClassFragmentTest  {
     @Test
     public void buildClassFragmentWithTwoRefTest(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.withDataSize(25);
+        builder.addAttribute(25);
         ClassFragment classFragment = builder.build();
-//        assertEquals(classFragment.getClassHash(), classFragment.getHeadTransaction().address());
 
         builder = new ClassFragment.Builder();
- //       builder.withDataSize(5);
         builder.addReferencedClass(classFragment);
         builder.addReferencedClass(classFragment);
         ClassFragment classFragment2 = builder.build();
- //       assertEquals(5, classFragment2.getDataSize());
         assertEquals(2, classFragment2.getRefCount());
-//        assertEquals(classFragment2.getClassHash(), classFragment2.getHeadTransaction().address());
         assertEquals(classFragment.getClassHash(), classFragment2.getClassHashForReference(0));
         assertEquals(classFragment.getClassHash(), classFragment2.getClassHashForReference(1));
         assertEquals(Trytes.NULL_HASH, classFragment2.getClassHashForReference(2));
@@ -73,21 +68,31 @@ public class ClassFragmentTest  {
     @Test
     public void buildClassFragmentWithTreeRefTest(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.withDataSize(25);
+        builder.addAttribute(25);
         ClassFragment classFragment = builder.build();
 
         builder = new ClassFragment.Builder();
-        builder.withDataSize(0);
+        builder.addAttribute(0);
         builder.addReferencedClass(classFragment);
         builder.addReferencedClass(classFragment);
         builder.addReferencedClass(classFragment);
         ClassFragment classFragment2 = builder.build();
         assertNotNull(classFragment2.getClassHash());
-        assertEquals(0, classFragment2.getDataSize());
+        assertEquals(6, classFragment2.getDataSize());
         assertEquals(3, classFragment2.getRefCount());
         assertEquals(classFragment.getClassHash(), classFragment2.getClassHashForReference(0));
         assertEquals(classFragment.getClassHash(), classFragment2.getClassHashForReference(1));
         assertEquals(classFragment.getClassHash(), classFragment2.getClassHashForReference(2));
         assertEquals(Trytes.NULL_HASH, classFragment2.getClassHashForReference(3));
+    }
+
+    @Test
+    public void buildClassFragmentWithVariableSizeAttributes(){
+        ClassFragment.Builder builder = new ClassFragment.Builder();
+        builder.addAttribute(25);
+        builder.addAttribute(25);
+        builder.addAttribute(0);
+        ClassFragment classFragment = builder.build();
+        assertEquals(56, classFragment.getDataSize());
     }
 }

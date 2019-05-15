@@ -3,18 +3,18 @@ package org.iota.ict.ixi.serialization.model;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 
+import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 import java.util.List;
 
 @SuppressWarnings("WeakerAccess")
 public abstract class BundleFragment {
 
-    private Transaction headTransaction;
+    private WeakReference<Transaction> headTransaction;
 
     public BundleFragment(Transaction headTransaction) {
         init(headTransaction);
     }
-
 
     protected void init(Transaction headTransaction){
         if(!hasHeadFlag(headTransaction)){
@@ -35,17 +35,17 @@ public abstract class BundleFragment {
                 throw new IllegalArgumentException("tailtransaction not found");
             }
         }
-
-        this.headTransaction = headTransaction;
+        this.headTransaction = new WeakReference<>(headTransaction);
     }
 
     public Transaction getHeadTransaction() {
-        return headTransaction;
+        return headTransaction.get();
     }
 
     public Transaction getTailTransaction() {
-        Transaction tail = headTransaction;
+        Transaction tail = headTransaction.get();
         while(!hasTailFlag(tail)){
+            if(tail==null) return null;
             tail = tail.getTrunk();
         }
         return tail;
@@ -54,7 +54,7 @@ public abstract class BundleFragment {
     abstract boolean hasTailFlag(Transaction t);
     abstract boolean hasHeadFlag(Transaction t);
 
-    public abstract static class Builder<T> {
+    public abstract static class Builder<T extends BundleFragment> {
 
         private final LinkedList<TransactionBuilder> tailToHead = new LinkedList<>();
         private boolean isHeadFragment = false;
@@ -88,14 +88,6 @@ public abstract class BundleFragment {
             return this;
         }
 
-        public void append(List<TransactionBuilder> unfinishedTransactionsFromTailToHead) {
-            for (TransactionBuilder unfinishedTransaction : unfinishedTransactionsFromTailToHead)
-                append(unfinishedTransaction);
-        }
-
-        public void append(TransactionBuilder unfinishedTransaction) {
-            tailToHead.add(unfinishedTransaction);
-        }
 
         public void addFirst(TransactionBuilder unfinishedTransaction) {
             tailToHead.add(0,unfinishedTransaction);

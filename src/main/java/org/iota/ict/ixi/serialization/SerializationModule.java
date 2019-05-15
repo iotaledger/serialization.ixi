@@ -1,8 +1,6 @@
 package org.iota.ict.ixi.serialization;
 
 import org.iota.ict.eee.Environment;
-import org.iota.ict.eee.call.EEEFunction;
-import org.iota.ict.eee.call.FunctionEnvironment;
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
 import org.iota.ict.ixi.serialization.model.BundleFragment;
@@ -13,19 +11,25 @@ import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.network.gossip.GossipEvent;
 import org.iota.ict.network.gossip.GossipPreprocessor;
+import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("WeakerAccess")
 public class SerializationModule extends IxiModule {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SerializationModule.class);
 
-    private Persistence persistence = new Persistence();
-    private Map<DataFragment.Filter, String> listeners = new HashMap<>();
+    //visible for testing
+    final Persistence persistence = new Persistence();
+    private final Map<DataFragment.Filter, String> listeners = new HashMap<>();
 
     public SerializationModule(Ixi ixi) {
         super(ixi);
@@ -34,6 +38,8 @@ public class SerializationModule extends IxiModule {
     @Override
     public void run() {
         EEEFunctions.init(this, ixi);
+
+        //register a gossip listener observing Bundles
         GossipPreprocessor gossipPreprocessor = new GossipPreprocessor(ixi, -4000);
         ixi.addListener(gossipPreprocessor);
         GossipEventHandler gossipEventHandler = new GossipEventHandler();
@@ -56,10 +62,18 @@ public class SerializationModule extends IxiModule {
     @Override
     public void onTerminate() {
         super.onTerminate();
+        persistence.terminate();
         runningThread.interrupt();
         LOGGER.info("Serialization.ixi terminated.");
     }
 
+    /**
+     * Build a ClassFragment based on builder.
+     * @param builder a ClassFragment.Builder
+     * @return the ClassFragment
+     * @see SerializationModule#publishBundleFragment(BundleFragment.Builder)
+     * @see SerializationModule#prepareBundleFragment(BundleFragment.Builder)
+     */
     public ClassFragment buildClassFragment(ClassFragment.Builder builder) {
         if (builder == null) {
             throw new IllegalArgumentException("builder cannot be null");
@@ -67,6 +81,14 @@ public class SerializationModule extends IxiModule {
         return builder.build();
     }
 
+
+    /**
+     * Build a DataFragment based on builder.
+     * @param builder a DataFragment.Builder
+     * @return the DataFragment
+     * @see SerializationModule#publishBundleFragment(BundleFragment.Builder)
+     * @see SerializationModule#prepareBundleFragment(BundleFragment.Builder)
+     */
     public DataFragment buildDataFragment(DataFragment.Builder builder) {
         if (builder == null) {
             throw new IllegalArgumentException("builder cannot be null");
@@ -76,7 +98,7 @@ public class SerializationModule extends IxiModule {
 
     /**
      * @return the ClassFragment with head transaction identified by transactionHash,
-     * or null if the transaction is not the head of a valid ClassFragment.
+     * or null if the transaction is not the head of a valid ClassFragment or cannot be found.
      * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
      */
     public ClassFragment loadClassFragment(String transactionHash) {
@@ -96,6 +118,11 @@ public class SerializationModule extends IxiModule {
         return new ClassFragment(tx);
     }
 
+
+    /**
+     * @param classHash the classHash to load
+     * @return The ClassFragment for the given classHash or null when the fragment cannot be found
+     */
     public ClassFragment loadClassFragmentForClassHash(String classHash) {
         if (classHash == null || classHash.equals(Trytes.NULL_HASH)) {
             throw new IllegalArgumentException("searched classHash cannot be null");
@@ -105,8 +132,8 @@ public class SerializationModule extends IxiModule {
 
     /**
      * @return the DataFragment with head transaction identified by transactionHash,
-     * or null if the transaction is not the head of a DataFragment.
-     * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)
+     * or null if the transaction is not the head of a DataFragment or cannot be found.
+     * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes) or the NULL_HASH
      */
     public DataFragment loadDataFragment(String transactionHash) {
         if (!Utils.isValidHash(transactionHash)) {
@@ -121,8 +148,26 @@ public class SerializationModule extends IxiModule {
         }
         ClassFragment classFragment = persistence.search(tx.address());
         if(classFragment!=null) {
-            DataFragment dataFragment = new DataFragment(tx, classFragment);
-            return dataFragment;
+            return new DataFragment(tx, classFragment);
+        }
+        return null;
+    }
+
+
+    /**
+     * @return the DataFragment referenced from dataFragment at index index,
+     * or null if referenced DataFragment cannot be found.
+     */
+    public DataFragment loadReferencedDataFragment(DataFragment dataFragment, int index) {
+        String headTransactionHash = dataFragment.getReference(index);
+        if (headTransactionHash != null) {
+            Transaction headTransaction = ixi.findTransactionByHash(headTransactionHash);
+            if (headTransaction != null) {
+                ClassFragment classFragment = persistence.search(headTransaction.address());
+                if(classFragment!=null) {
+                    return new DataFragment(headTransaction, classFragment);
+                }
+            }
         }
         return null;
     }
@@ -149,19 +194,21 @@ public class SerializationModule extends IxiModule {
     }
 
     /**
-     * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced
-     * @return all DataFragment referencing *referencedTransactionHash* from reference at index *index*
+     * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced (by any reference)
+     * @param filter a filter to refine the result set (can be null)
+     * @return all DataFragment referencing *referencedTransactionHash* from any reference
+     * @see DataFragment.Filter
      */
+    @SuppressWarnings("unchecked")
     public Set<DataFragment> findDataFragmentReferencing(String referencedTransactionHash, DataFragment.Filter filter) {
         if (referencedTransactionHash == null || referencedTransactionHash.equals(Trytes.NULL_HASH)) {
             throw new IllegalArgumentException("referencedTransactionHash cannot be null");
         }
         Set<DataFragment> ret = persistence.referencing.get(referencedTransactionHash);
-        if(ret==null) return Collections.EMPTY_SET;
+        if(ret==null || ret.size()==0) return Collections.EMPTY_SET;
         if(filter==null){
             return ret;
         }
-        if(ret.size()==0)return Collections.EMPTY_SET;
         HashSet<DataFragment> filtered = new HashSet<>();
         for(DataFragment f:ret){
             if(filter.match(f)){
@@ -171,10 +218,40 @@ public class SerializationModule extends IxiModule {
         return filtered;
     }
 
-    public DataFragment getFragmentAtIndex(DataFragment fragment, int index) {
-        return loadDataFragment(fragment.getReference(index));
+    /**
+     * @param referencedTransactionHash the transaction hash of the dataFragment to be referenced (by reference at index 'referenceIndex')
+     * @param referenceIndex of the reference to inspect
+     * @param filter a filter to refine the result set (can be null)
+     * @return all DataFragment referencing *referencedTransactionHash* from any reference
+     * @see DataFragment.Filter
+     */
+    @SuppressWarnings("unchecked")
+    public Set<DataFragment> findDataFragmentReferencingAtIndex(int referenceIndex, String referencedTransactionHash, DataFragment.Filter filter) {
+        if (referencedTransactionHash == null || referencedTransactionHash.equals(Trytes.NULL_HASH)) {
+            throw new IllegalArgumentException("referencedTransactionHash cannot be null");
+        }
+        Set<DataFragment> ret = persistence.referencing.get(referencedTransactionHash);
+        if(ret==null || ret.size()==0) return Collections.EMPTY_SET;
+        if(filter==null){
+            filter = dataFragment -> dataFragment.getReference(referenceIndex).equals(referencedTransactionHash);
+        }else{
+            filter = DataFragment.Filter.and(filter, dataFragment -> dataFragment.getReference(referenceIndex).equals(referencedTransactionHash));
+        }
+        HashSet<DataFragment> filtered = new HashSet<>();
+        for(DataFragment f:ret){
+            if(filter.match(f)){
+                filtered.add(f);
+            }
+        }
+        return filtered;
     }
 
+    /**
+     * @param dataFragment : fragment to inspect
+     * @param index : index of an attribute
+     * @return the tryte string representing the value of this attribute or the empty string when the value is not available.
+     * @throws ArrayIndexOutOfBoundsException when attributeIndex is not in range
+     */
     public String getAttributeTrytes(DataFragment dataFragment, int index) {
         if (dataFragment == null) {
             throw new IllegalArgumentException("dataFragment cannot be null");
@@ -182,10 +259,16 @@ public class SerializationModule extends IxiModule {
         return dataFragment.getAttributeAsTryte(index);
     }
 
+    /**
+     * @param dataFragmentTransactionHash : the hash of the fragment to inspect
+     * @param index : index of an attribute
+     * @return the tryte string representing the value of this attribute or the empty string when the value is not available.
+     * @throws ArrayIndexOutOfBoundsException when attributeIndex is not in range
+     */
     public String getAttributeTrytes(String dataFragmentTransactionHash, int index) {
         DataFragment dataFragment = loadDataFragment(dataFragmentTransactionHash);
         if (dataFragment == null) {
-            return null;
+            return "";
         }
         return dataFragment.getAttributeAsTryte(index);
     }
@@ -222,11 +305,24 @@ public class SerializationModule extends IxiModule {
     }
 
 
+    /**
+     * Publish the fragment build with fragmentBuilder. The fragment head transaction will also be the BundleHead transaction.
+     * Depending on the fragmentBuilder.referencedTrunk transaction, the fragment-tail will be flagged as bundle tail or not.
+     * @param fragmentBuilder can be a DataFragment.Builder or a ClassFragment.Builder
+     * @return the published bundle fragment
+     */
     public <F extends BundleFragment,T extends BundleFragment.Builder<F>> F publishBundleFragment(T fragmentBuilder) {
         fragmentBuilder.setHeadFragment(true);
         return submitFragment(fragmentBuilder);
     }
 
+
+    /**
+     * Prepare the fragment build with fragmentBuilder. The fragment head transaction will not be BundleHead transaction.
+     * Depending on the fragmentBuilder.referencedTrunk transaction, the fragment-tail will be flagged as bundle tail or not.
+     * @param fragmentBuilder can be a DataFragment.Builder or a ClassFragment.Builder
+     * @return the published bundle fragment
+     */
     public <F extends BundleFragment,T extends BundleFragment.Builder<F>> F prepareBundleFragment(T fragmentBuilder) {
         return submitFragment(fragmentBuilder);
     }
@@ -268,23 +364,6 @@ public class SerializationModule extends IxiModule {
     public ClassFragment.Prepared prepareClassFragment(ClassFragment.Builder builder) {
         return builder.prepare();
     }
-
-
-    public DataFragment getDataFragment(DataFragment dataFragment, int index) {
-        String headTransactionHash = dataFragment.getReference(index);
-        if (headTransactionHash != null) {
-            Transaction headTransaction = ixi.findTransactionByHash(headTransactionHash);
-            if (headTransaction != null) {
-                ClassFragment classFragment = persistence.search(headTransaction.address());
-                if(classFragment!=null) {
-                    return new DataFragment(headTransaction, classFragment);
-                }
-            }
-        }
-        return null;
-    }
-
-
 
 
 
@@ -371,37 +450,82 @@ public class SerializationModule extends IxiModule {
                 DataFragment dataFragment = new DataFragment(fragmentHead, classFragment);
                 persistence.persist(dataFragment);
                 notifyListeners(dataFragment);
+                return dataFragment.getTailTransaction();
             }
             return null;
         }
     }
 
 
-    private class Persistence {
-        private Map<String, ClassFragment> classFragments = new HashMap<>();
-        private Map<String, Set<DataFragment>> referencing = new HashMap<>();
+    class Persistence {
+        private final Map<String, ClassFragment> classFragments = new HashMap<>();
+        private final Map<String, Set<DataFragment>> referencing = new HashMap<>();
+
+        int delay = Constants.RUN_MODUS == Constants.RunModus.MAIN ? 60 : 3;
+
+        public Persistence() {
+            execService.schedule(task, delay, TimeUnit.SECONDS);
+        }
 
         public void persist(ClassFragment classFragment){
             classFragments.put(classFragment.getClassHash(), classFragment);
+        }
+
+        public void terminate(){
+            referencing.clear();
+            classFragments.clear();
+            execService.shutdownNow();
         }
 
         public void persist(DataFragment dataFragment){
             for(int i=0;i<dataFragment.getClassFragment().getRefCount();i++){
                 String referenced = dataFragment.getReference(i);
                 if(!referenced.equals(Trytes.NULL_HASH)){
-                    Set<DataFragment> set = referencing.get(referenced);
-                    if(set==null){
-                        set = new HashSet<>();
-                        referencing.put(referenced,set);
-                    }
+                    Set<DataFragment> set = referencing.computeIfAbsent(referenced, k -> new HashSet<>());
                     set.add(dataFragment);
                 }
             }
         }
         public ClassFragment search(String classHash){
-            ClassFragment fragment = classFragments.get(classHash);
-            return fragment;
+            return classFragments.get(classHash);
         }
+
+        final ScheduledExecutorService execService =
+                Executors.newSingleThreadScheduledExecutor(r -> {
+                    Thread newThread = Executors.defaultThreadFactory().newThread(r);
+                    newThread.setName("PersistenceCleaner");
+                    return newThread;
+                });
+
+        final Callable<Void> task = new Callable<Void>() {
+            public Void call() {
+                try {
+                    List<String> droppedTransactions = new ArrayList<>();
+                    for(String txHash:referencing.keySet()){
+                        if(ixi.findTransactionByHash(txHash)==null){
+                            droppedTransactions.add(txHash);
+                        }
+                    }
+                    for(String txHash:droppedTransactions){
+                        referencing.remove(txHash);
+                    }
+                    if(droppedTransactions.size()>0){
+                        LOGGER.info("Dropped "+droppedTransactions.size()+" referenced transactions.");
+                        delay = Math.max(delay/2, 60);
+                    }else{
+                        delay = Math.min(delay*2, 600);
+                        LOGGER.debug("Dropped 0 referenced transactions. Next run in "+delay+" seconds");
+                    }
+                } catch (Throwable t){
+                    LOGGER.warn("Exception when running Persistence cleaner");
+                } finally {
+                    if(!Thread.currentThread().isInterrupted())
+                        execService.schedule(this, delay, TimeUnit.SECONDS);
+                }
+                return null;
+            }
+        };
+
     }
 
 }
