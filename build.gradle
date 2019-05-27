@@ -14,9 +14,9 @@ repositories {
 }
 
 dependencies {
-    compileOnly ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
-    runtimeClasspath ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
-    testCompile ('com.github.iotaledger:ict:b10ccc367295be6387cc9cdf08bd2ec81ac81edd')
+    compileOnly ('com.github.iotaledger:ict:3bb009c3fd0088943ab9b810c69a76097f9fb6ae')
+    runtimeClasspath ('com.github.iotaledger:ict:3bb009c3fd0088943ab9b810c69a76097f9fb6ae')
+    testCompile ('com.github.iotaledger:ict:3bb009c3fd0088943ab9b810c69a76097f9fb6ae')
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.4.1'
     testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.4.1'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.21.0'

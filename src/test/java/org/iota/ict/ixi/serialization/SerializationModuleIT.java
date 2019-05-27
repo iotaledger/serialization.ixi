@@ -3,9 +3,6 @@ package org.iota.ict.ixi.serialization;
 import org.iota.ict.Ict;
 import org.iota.ict.eee.EffectListener;
 import org.iota.ict.eee.Environment;
-import org.iota.ict.ixi.IxiModule;
-import org.iota.ict.ixi.IxiModuleHolder;
-import org.iota.ict.ixi.IxiModuleInfo;
 import org.iota.ict.ixi.TestUtils;
 import org.iota.ict.ixi.serialization.model.*;
 import org.iota.ict.model.bundle.Bundle;
@@ -13,7 +10,7 @@ import org.iota.ict.model.bundle.BundleBuilder;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.model.transaction.TransactionBuilder;
 import org.iota.ict.utils.Trytes;
-import org.iota.ict.utils.properties.Properties;
+import org.iota.ict.utils.properties.EditableProperties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -38,15 +35,11 @@ public class SerializationModuleIT {
 
     @BeforeAll
     public static void startIct() throws Exception {
-        System.setProperty("log4j.configurationFile","log4j2.xml");
-        java.util.Properties javaProperties = new java.util.Properties();
-        javaProperties.setProperty(Properties.Property.port.name(), "2387");
-        javaProperties.setProperty(Properties.Property.gui_enabled.name(), "false");
-        Properties properties = Properties.fromJavaProperties(javaProperties);
+        //System.setProperty("log4j.configurationFile","log4j2.xml");
+        EditableProperties properties = new EditableProperties().host("localhost").port(2387).minForwardDelay(0).maxForwardDelay(10).guiEnabled(false);
         ict = new Ict(properties.toFinal());
-        ict.getModuleHolder().loadVirtualModule(SerializationModule.class, "Serialization.ixi");
+        serializationModule = (SerializationModule) ict.getModuleHolder().loadVirtualModule(SerializationModule.class, "Serialization.ixi");
         ict.getModuleHolder().startAllModules();
-        serializationModule = (SerializationModule) getModuleByName(ict.getModuleHolder(),"Serialization.ixi");
     }
 
     @AfterAll
@@ -345,17 +338,6 @@ public class SerializationModuleIT {
         bundleBuilder.append(tx1);
         return bundleBuilder.build();
     }
-
-    private static IxiModule getModuleByName(IxiModuleHolder moduleHolder, String name){
-        for(IxiModule ixiModule:moduleHolder.getModules()){
-            IxiModuleInfo info = moduleHolder.getInfo(ixiModule);
-            if(info.name.equals(name)){
-                return ixiModule;
-            }
-        }
-        return null;
-    }
-
 
     @Test
     public void registerListenerTest() throws InterruptedException {
