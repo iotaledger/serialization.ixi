@@ -40,13 +40,14 @@ public class SerializationModule extends IxiModule {
         EEEFunctions.init(this, ixi);
 
         //register a gossip listener observing Bundles
-        GossipPreprocessor gossipPreprocessor = new GossipPreprocessor(ixi, -4000);
+        GossipPreprocessor gossipPreprocessor = new GossipPreprocessor(ixi, -999);
         ixi.addListener(gossipPreprocessor);
         GossipEventHandler gossipEventHandler = new GossipEventHandler();
         try{
             while(isRunning()){
                 GossipEvent gossipEvent = gossipPreprocessor.takeEffect();
                 gossipEventHandler.handleEvent(gossipEvent);
+                gossipPreprocessor.passOn(gossipEvent);
             }
         }catch (InterruptedException e){
             LOGGER.info("Serialization.ixi interrupted...");
