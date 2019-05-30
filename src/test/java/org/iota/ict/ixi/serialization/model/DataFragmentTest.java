@@ -14,7 +14,7 @@ public class DataFragmentTest {
 
     @Test
     public void buildDataFragmentTest(){
-        ClassFragment classFragment = new ClassFragment.Builder().addReferencedClasshash(TestUtils.random(81)).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addReferencedClasshash(TestUtils.random(81)).build();
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         String ref0 = TestUtils.randomHash();
         builder.setReference(0, ref0);
@@ -30,7 +30,7 @@ public class DataFragmentTest {
 
     @Test
     public void buildDataFragmentTest2(){
-        ClassFragment classFragment = new ClassFragment.Builder()
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9))
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81))
                 .build();
@@ -54,7 +54,7 @@ public class DataFragmentTest {
 
     @Test
     public void buildDataFragmentTest3(){
-        ClassFragment classFragment = new ClassFragment.Builder()
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9))
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81))
                 .build();
@@ -74,7 +74,7 @@ public class DataFragmentTest {
 
     @Test
     public void buildDataFragmentRemoveRefTest(){
-        ClassFragment classFragment = new ClassFragment.Builder().addReferencedClasshash(TestUtils.random(81)).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addReferencedClasshash(TestUtils.random(81)).build();
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         String ref0 = TestUtils.randomHash();
         builder.setReference(0, ref0);
@@ -91,14 +91,14 @@ public class DataFragmentTest {
 
     @Test
     public void testVariableSizeAttribute() {
-        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(0, TestUtils.random(10)).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addAttribute(0, TestUtils.random(10)).build();
         DataFragment dataFragment = new DataFragment.Builder(classFragment).setAttribute(0,"MY9DATA").build();
         assertEquals("MY9DATA",dataFragment.getAttributeAsTryte(0));
     }
 
     @Test
     public void testTooLongAttribute() {
-        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(4, TestUtils.random(10)).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addAttribute(4, TestUtils.random(10)).build();
         DataFragment dataFragment = new DataFragment.Builder(classFragment)
                 .setAttribute(0,"MY9DATA").build();
         assertEquals("MY9D",dataFragment.getAttributeAsTryte(0));
@@ -106,7 +106,7 @@ public class DataFragmentTest {
 
     @Test
     public void testVariableSizeAttribute2() {
-        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(0, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addAttribute(0, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).build();
         DataFragment dataFragment = new DataFragment.Builder(classFragment)
                 .setAttribute(0,"MY9DATA")
                 .setAttribute(1,"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -117,7 +117,7 @@ public class DataFragmentTest {
 
     @Test
     public void testVariableSizeAttribute3() {
-        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(7, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addAttribute(7, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).build();
         DataFragment dataFragment = new DataFragment.Builder(classFragment)
                 .setAttribute(0,"MY9DATA")
                 .setAttribute(1,"ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -129,7 +129,7 @@ public class DataFragmentTest {
 
     @Test
     public void testVariableSizeAttribute4() {
-        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(7, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addAttribute(7, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).addAttribute(0, TestUtils.random(10)).build();
         String randomData = TestUtils.random(10000);
         DataFragment dataFragment = new DataFragment.Builder(classFragment)
                 .setAttribute(0,"MY9DATA")
@@ -144,7 +144,7 @@ public class DataFragmentTest {
 
     @Test
     public void testVariableSizeAttribute5() {
-        ClassFragment classFragment = new ClassFragment.Builder()
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9))
                 .addAttribute(7, TestUtils.random(10))
                 .addAttribute(0, TestUtils.random(10))
                 .addAttribute(0, TestUtils.random(10)).build();
@@ -160,7 +160,7 @@ public class DataFragmentTest {
 
     @Test
     public void testVariableSizeAttribute6() {
-        ClassFragment classFragment = new ClassFragment.Builder()
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9))
                 .addAttribute(7, TestUtils.random(10))
                 .addAttribute(0, TestUtils.random(10))
                 .addAttribute(0, TestUtils.random(10))
@@ -180,7 +180,7 @@ public class DataFragmentTest {
 
     @Test
     public void testVariableSizeAttribute7() {
-        ClassFragment classFragment = new ClassFragment.Builder()
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9))
                 .addAttribute(7, TestUtils.random(10))
                 .addAttribute(0, TestUtils.random(10))
                 .addAttribute(0, TestUtils.random(10))

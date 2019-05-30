@@ -11,13 +11,13 @@ public class ClassFragmentTest  {
 
     @Test
     public void buildSimpleClassFragmentTest(){
-        ClassFragment.Builder builder = new ClassFragment.Builder();
+        ClassFragment.Builder builder = new ClassFragment.Builder(TestUtils.random(9));
         builder.addAttribute(24,"");
         ClassFragment classFragment = builder.build();
         assertEquals(24, classFragment.getDataSize());
         assertEquals(0, classFragment.getRefCount());
 
-        builder = new ClassFragment.Builder();
+        builder = new ClassFragment.Builder(TestUtils.random(27));
         builder.addAttribute(27, TestUtils.random(10));
         ClassFragment classFragment2 = builder.build();
         assertEquals(27, classFragment2.getDataSize());
@@ -32,10 +32,10 @@ public class ClassFragmentTest  {
 
     @Test
     public void buildClassFragmentWithOneRefTest(){
-        ClassFragment.Builder builder = new ClassFragment.Builder();
+        ClassFragment.Builder builder = new ClassFragment.Builder(TestUtils.random(9));
         ClassFragment classFragment = builder.build();
 
-        builder = new ClassFragment.Builder()
+        builder = new ClassFragment.Builder(TestUtils.random(9))
                 .addReferencedClass(classFragment);
         ClassFragment classFragment2 = builder.build();
         assertEquals(0, classFragment2.getDataSize());
@@ -48,11 +48,11 @@ public class ClassFragmentTest  {
     }
     @Test
     public void buildClassFragmentWithTwoRefTest(){
-        ClassFragment.Builder builder = new ClassFragment.Builder();
+        ClassFragment.Builder builder = new ClassFragment.Builder(TestUtils.random(9));
         builder.addAttribute(25, TestUtils.random(10));
         ClassFragment classFragment = builder.build();
 
-        builder = new ClassFragment.Builder();
+        builder = new ClassFragment.Builder(TestUtils.random(9));
         builder.addReferencedClass(classFragment);
         builder.addReferencedClass(classFragment);
         ClassFragment classFragment2 = builder.build();
@@ -68,11 +68,11 @@ public class ClassFragmentTest  {
 
     @Test
     public void buildClassFragmentWithTreeRefTest(){
-        ClassFragment.Builder builder = new ClassFragment.Builder();
+        ClassFragment.Builder builder = new ClassFragment.Builder(TestUtils.random(9));
         builder.addAttribute(25, TestUtils.random(10));
         ClassFragment classFragment = builder.build();
 
-        builder = new ClassFragment.Builder();
+        builder = new ClassFragment.Builder(TestUtils.random(9));
         builder.addAttribute(0, TestUtils.random(10));
         builder.addReferencedClass(classFragment);
         builder.addReferencedClass(classFragment);
@@ -89,7 +89,7 @@ public class ClassFragmentTest  {
 
     @Test
     public void buildClassFragmentWithVariableSizeAttributes(){
-        ClassFragment.Builder builder = new ClassFragment.Builder();
+        ClassFragment.Builder builder = new ClassFragment.Builder(TestUtils.random(9));
         builder.addAttribute(25, TestUtils.random(10));
         builder.addAttribute(25, TestUtils.random(10));
         builder.addAttribute(0, TestUtils.random(10));

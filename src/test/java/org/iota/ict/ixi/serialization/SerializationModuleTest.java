@@ -91,7 +91,7 @@ public class SerializationModuleTest {
 
     @Test
     public void prepareDataFragment(){
-        ClassFragment classFragment = new ClassFragment.Builder().addReferencedClasshash(TestUtils.randomHash()).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addReferencedClasshash(TestUtils.randomHash()).build();
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         builder.setReference(1, TestUtils.randomHash());
         DataFragment.Prepared preparedData = serializationModule.prepare(builder);
@@ -122,7 +122,7 @@ public class SerializationModuleTest {
     }
 
     private Bundle createBundle() {
-        ClassFragment classFragment = new ClassFragment.Builder().addReferencedClasshash(TestUtils.randomHash()).build();
+        ClassFragment classFragment = new ClassFragment.Builder(TestUtils.random(9)).addReferencedClasshash(TestUtils.randomHash()).build();
         DataFragment.Builder builder = new DataFragment.Builder(classFragment);
         builder.setReference(0,TestUtils.randomHash());
         builder.setReference(1,TestUtils.randomHash());

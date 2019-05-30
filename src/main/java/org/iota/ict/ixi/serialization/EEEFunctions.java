@@ -17,9 +17,20 @@ public class EEEFunctions {
     private final Ixi ixi;
 
     /**
-     * This function will auto-discrimate between attribute (integer) or classHash (trytes)
-     * Input  : <attribute_size or referenced_classhash>;[<attribute_size or referenced_classhash>;]*
+     * This function will auto-discrimate between attribute (integer<space>attributeName) or classHash (trytes)
+     * Input  : <classname>;<attribute_size attributeName>|<referenced_classhash>;[<attribute_size attributeName>|<referenced_classhash>;]*
      * Output : <ClassHash trytes>
+     *
+     * Example : to compute the classHash of a class named "MY9CLASS" with 2 attributes:
+     *           named "A0" (size 9) and "A1" (variable size)
+     *           and 2 references :
+     *           first one is referencing a dataFragment with classHash REF9CLASS...VGHGYU  (81 trytes)
+     *           second is referencing a random transaction (not a dataFragment, or referenced classHash unknown)
+     *
+     *           The request will look like this :
+     *
+     *           MY9CLASS;A0 9;A1 0;REF9CLASS...VGHGYU;9999...999
+     *
      */
     private final EEEFunction computeClassHash = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "computeClassHash"));
 
@@ -29,12 +40,20 @@ public class EEEFunctions {
      *                       token 1: index, the index of the attribute or reference
      *                       token 2: trytes, either the data or the 81 trytes of the reference)
      * Input  : <classHash>;<trunk_hash>;<branch_hash>;<ATTRIB_OR_REFERENCE>[;<ATTRIB_OR_REFERENCE>]*
-     * Output : <fragment_head_hash>;<class_hash>
+     * Output : <fragment_head_hash>
+     *
+     * Example : to publish a DataFragment of a class with classHash ADCD...XYZ (81 trytes),
+     *            and attribute at index 3 having the value "MY9VALUE"
+     *            and reference at index 0 referencing dataFragment with tx_hash "MY9DATA9TX9HASH9...XYZ"
+     *
+     *            The request will look like this :
+     *
+     *            ADCD...XYZ;A 3 MY9VALUE;R 0 MY9DATA9TX9HASH9...XYZ
      */
     private final EEEFunction publishDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishDataFragment"));
 
     /**
-     * Input  : <trunk_hash>;<branch_hash>;<attribute_size or referenced_classhash>;[<attribute_size or referenced_classhash>;]*
+     * Input  : <classname>;<trunk_hash>;<branch_hash>;<attribute_size attributeName>|<referenced_classhash>;[<attribute_size attributeName>|<referenced_classhash>;]*
      * Output : <fragment_head_hash>;<class_hash>
      */
     private final EEEFunction publishClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "publishClassFragment"));
@@ -50,7 +69,7 @@ public class EEEFunctions {
     private final EEEFunction prepareDataFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "prepareDataFragment"));
 
     /**
-     * Input  : <trunk_hash>;<branch_hash>;<attribute_size or referenced_classhash>;[<attribute_size or referenced_classhash>;]*
+     * Input  : <classname>;<trunk_hash>;<branch_hash>;<attribute_size attributeName>|<referenced_classhash>;[<attribute_size attributeName>|<referenced_classhash>;]*
      * Output : <fragment_head_hash>
      */
     private final EEEFunction prepareClassFragment = new EEEFunction(new FunctionEnvironment("Serialization.ixi", "prepareClassFragment"));
@@ -122,8 +141,8 @@ public class EEEFunctions {
     private void processComputeClassHashRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        ClassFragment.Builder builder = new ClassFragment.Builder();
-        int i = 0;
+        ClassFragment.Builder builder = new ClassFragment.Builder(split[0]);
+        int i = 1;
         while(i<split.length){
             appendAttributeOrRef(builder, split[i]);
             i++;
@@ -152,11 +171,11 @@ public class EEEFunctions {
     private ClassFragment.Builder classFragmentBuilderFromRequest(EEEFunction.Request request) {
         String argument = request.argument;
         String[] split = argument.split(";");
-        ClassFragment.Builder builder = (ClassFragment.Builder) new ClassFragment.Builder()
-                .setReferencedTrunk(split[0])
-                .setReferencedBranch(split[1]);
-        if (split.length > 2) {
-            int i = 3;
+        ClassFragment.Builder builder = (ClassFragment.Builder) new ClassFragment.Builder(split[0])
+                .setReferencedTrunk(split[1])
+                .setReferencedBranch(split[2]);
+        if (split.length > 3) {
+            int i = 4;
             while (i < split.length) {
                 String s = split[i];
                 appendAttributeOrRef(builder, s);

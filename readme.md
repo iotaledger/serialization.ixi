@@ -26,13 +26,15 @@ and the trit at tag[3] to indicate the fragment-tail-transaction.
 
 The message of ClassFragment encode metadata about a data fragment : 
 
-- trits [0;81[ : data size
-- trits [81;162[ : references count
-- trits [162;243[ : attributes count
+- trytes [0;27[ : the classname
+- trytes [27;54[ : data size
+- trytes [54;81[ : references count
+- trytes [81;108[ : attributes count
 
-The following trits of the message field encode the sizes of attributes of the DataFragment.
+The following trits of the message field encode the sizes and names of attributes of the DataFragment.
 An attribute is a slice of the message of a DataFragment.
 The size of an attribute is encoded on 6 trytes.
+The name of an attribute is encoded on 27 trytes.
 When the size of the attribute is unknown or variable : the size is encoded as 0 ('999999')
 
 Address field of the head transaction of a ClassFragment is always the NullHash.  

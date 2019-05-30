@@ -15,40 +15,52 @@ public class ClassFragment extends BundleFragment {
 
     public static final int CURL_ROUNDS_CLASS_HASH = 27;
 
-    public static final int TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD = 6;
-    public static final int TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD = 27;
-    public static final int TRYTE_LENGTH_OF_ATTRIBUTE_FIELD = TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD+TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD;
+    public static final int LENGTH_OF_ATTRIBUTE_SIZE_FIELD = 6;
+    public static final int LENGTH_OF_ATTRIBUTE_NAME_FIELD = 27;
+    public static final int LENGTH_OF_ATTRIBUTE_FIELD = LENGTH_OF_ATTRIBUTE_SIZE_FIELD + LENGTH_OF_ATTRIBUTE_NAME_FIELD;
 
-    public static final int TRYTE_LENGTH_OF_SIZE_FIELD = 27;
-    public static final int TRYTE_LENGTH_OF_REFCOUNT_FIELD = 27;
-    public static final int TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD = 27;
-    private static final int TRYTE_LENGTH_OF_HEADER = TRYTE_LENGTH_OF_REFCOUNT_FIELD+TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD;
+    public static final int LENGTH_OF_CLASSNAME_FIELD = 27;
+    public static final int OFFSET_OF_SIZE_FIELD = LENGTH_OF_CLASSNAME_FIELD;
+    public static final int LENGTH_OF_SIZE_FIELD = 27;
+    public static final int OFFSET_OF_REFCOUNT_FIELD = OFFSET_OF_SIZE_FIELD+LENGTH_OF_SIZE_FIELD;
+    public static final int LENGTH_OF_REFCOUNT_FIELD = 27;
+    public static final int OFFSET_OF_ATTRIBUTECOUNT_FIELD = OFFSET_OF_REFCOUNT_FIELD+LENGTH_OF_REFCOUNT_FIELD;
+    public static final int LENGTH_OF_ATTRIBUTECOUNT_FIELD = 27;
+    private static final int LENGTH_OF_HEADER = OFFSET_OF_ATTRIBUTECOUNT_FIELD+LENGTH_OF_ATTRIBUTECOUNT_FIELD;
 
     private final int dataSize;
     private final int refCount;
     private final int attributeCount;
     private String classHash;
+    private String className;
     private final int[] attributesLength;
     private final String[] attributesName;
     private final String[] referencedClassHash;
     private final List<Integer> variableSizeAttributes = new ArrayList<>();
+
+    //we cap the number of attributes in a class so that classFragment fit in one tx.
+    private static int MAX_ATTRIBUTE_COUNT = (Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength - LENGTH_OF_HEADER)/LENGTH_OF_ATTRIBUTE_FIELD;
 
     public ClassFragment(Transaction headTransaction) {
         super(headTransaction);
 
         //extracting the metadata so that we have a quick access to it and
         //more importantly: the existence of underlying transactions is not required when accessing the metadata at a later point in time.
-        dataSize = Trytes.toNumber(headTransaction.signatureFragments().substring(0, TRYTE_LENGTH_OF_SIZE_FIELD)).intValue();
-        refCount = Trytes.toNumber(headTransaction.signatureFragments().substring(TRYTE_LENGTH_OF_SIZE_FIELD,TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD)).intValue();
-        attributeCount = Trytes.toNumber(headTransaction.signatureFragments().substring(TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD,TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD+TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD)).intValue();
+        className = headTransaction.signatureFragments().substring(0, LENGTH_OF_CLASSNAME_FIELD);
+        dataSize = Trytes.toNumber(headTransaction.signatureFragments().substring(OFFSET_OF_SIZE_FIELD, OFFSET_OF_SIZE_FIELD + LENGTH_OF_SIZE_FIELD)).intValue();
+        refCount = Trytes.toNumber(headTransaction.signatureFragments().substring(OFFSET_OF_REFCOUNT_FIELD, OFFSET_OF_REFCOUNT_FIELD + LENGTH_OF_REFCOUNT_FIELD)).intValue();
+        attributeCount = Trytes.toNumber(headTransaction.signatureFragments().substring(OFFSET_OF_ATTRIBUTECOUNT_FIELD, OFFSET_OF_ATTRIBUTECOUNT_FIELD + LENGTH_OF_ATTRIBUTECOUNT_FIELD)).intValue();
+        if(attributeCount > MAX_ATTRIBUTE_COUNT){
+            throw new IllegalStateException("Too many attributes. max is "+MAX_ATTRIBUTE_COUNT);
+        }
         attributesLength = new int[attributeCount];
         attributesName = new String[attributeCount];
         int[] attributesOffsets = new int[attributeCount];
 
         //parse attributes metadata
-        int currentOffset = TRYTE_LENGTH_OF_HEADER;
+        int currentOffset = LENGTH_OF_HEADER;
         for(int i=0;i<attributeCount;i++){
-            attributesLength[i] = Trytes.toNumber(headTransaction.signatureFragments().substring(currentOffset, currentOffset+TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD)).intValue();
+            attributesLength[i] = Trytes.toNumber(headTransaction.signatureFragments().substring(currentOffset, currentOffset+ LENGTH_OF_ATTRIBUTE_SIZE_FIELD)).intValue();
             if(i==0){
                 attributesOffsets[i] = 0;
             }else{
@@ -57,8 +69,8 @@ public class ClassFragment extends BundleFragment {
             if(attributesLength[i]==0){
                 variableSizeAttributes.add(i);
             }
-            currentOffset += TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD;
-            attributesName[i] = headTransaction.signatureFragments().substring(currentOffset, currentOffset+TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD);
+            currentOffset += LENGTH_OF_ATTRIBUTE_SIZE_FIELD;
+            attributesName[i] = headTransaction.signatureFragments().substring(currentOffset, currentOffset+ LENGTH_OF_ATTRIBUTE_NAME_FIELD);
         }
 
         //parse references metadata
@@ -119,7 +131,7 @@ public class ClassFragment extends BundleFragment {
     }
 
     private String computeClassHash(){
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(Trytes.padRight(className,27));
         int i = 0;
         while(i<refCount){
             sb.append(getClassHashForReference(i));
@@ -128,9 +140,9 @@ public class ClassFragment extends BundleFragment {
         i = 0;
         while(i<attributeCount){
             if(attributesLength[i]==0){
-                sb.append(Trytes.fromNumber(BigInteger.valueOf(TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD), TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
+                sb.append(Trytes.fromNumber(BigInteger.valueOf(LENGTH_OF_ATTRIBUTE_SIZE_FIELD), LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
             }else {
-                sb.append(Trytes.fromNumber(BigInteger.valueOf(attributesLength[i]), TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
+                sb.append(Trytes.fromNumber(BigInteger.valueOf(attributesLength[i]), LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
             }
             sb.append(attributesName[i]);
             i+=1;
@@ -171,10 +183,16 @@ public class ClassFragment extends BundleFragment {
 
     public static class Builder extends BundleFragment.Builder<ClassFragment> {
 
+        private final String className;
         private int dataSize;
         private final List<String> references = new ArrayList<>();
         private final List<String> attributes = new ArrayList<>();
         private final List<String> attributesName = new ArrayList<>();
+
+        public Builder(String className){
+            assert Utils.isValidClassName(className);
+            this.className = Trytes.padRight(className, LENGTH_OF_CLASSNAME_FIELD);
+        }
 
         public Builder addReferencedClasshash(String referencedClassHash){
             references.add(referencedClassHash);
@@ -187,14 +205,17 @@ public class ClassFragment extends BundleFragment {
         }
 
         public Builder addAttribute(int tryteSize, String name){
-            assert tryteSize < 193710245;
+            assert tryteSize < 193710245; //max int encoded on 6 trytes
             assert name.length() <= 27;
             assert Utils.isValidAttributeName(name);
-            attributes.add(Trytes.fromNumber(BigInteger.valueOf(tryteSize),TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
-            attributesName.add(Trytes.padRight(name, TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD));
+            if(attributes.size() >= MAX_ATTRIBUTE_COUNT){
+                throw new IllegalStateException("Too many attributes in one class. Max is "+MAX_ATTRIBUTE_COUNT);
+            }
+            attributes.add(Trytes.fromNumber(BigInteger.valueOf(tryteSize), LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
+            attributesName.add(Trytes.padRight(name, LENGTH_OF_ATTRIBUTE_NAME_FIELD));
             dataSize += tryteSize;
             if(tryteSize==0){
-                dataSize += TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD;
+                dataSize += LENGTH_OF_ATTRIBUTE_SIZE_FIELD;
             }
             return this;
         }
@@ -218,7 +239,7 @@ public class ClassFragment extends BundleFragment {
 
         private void prepareTransactionBuilders() {
             int refCount = references.size();
-            int trytesRequiredForData = TRYTE_LENGTH_OF_HEADER + ((TRYTE_LENGTH_OF_ATTRIBUTE_FIELD)*attributes.size());
+            int trytesRequiredForData = LENGTH_OF_HEADER + ((LENGTH_OF_ATTRIBUTE_FIELD)*attributes.size());
             int transactionsRequiredForData = 1 + (trytesRequiredForData/Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
             int transactionsRequiredForReferences = 1 + refCount/2;
             int transactionsRequired = Math.max(transactionsRequiredForData, transactionsRequiredForReferences);
@@ -236,10 +257,11 @@ public class ClassFragment extends BundleFragment {
             for(int i=0;i<transactionsRequired;i++){
                 StringBuilder stringBuilder = new StringBuilder();
                 if(i==0) {
-                    stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(dataSize),TRYTE_LENGTH_OF_SIZE_FIELD));
-                    stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(references.size()),TRYTE_LENGTH_OF_REFCOUNT_FIELD));
-                    stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(attributes.size()),TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD));
-                    messageOffset = TRYTE_LENGTH_OF_HEADER;
+                    stringBuilder.append(className);
+                    stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(dataSize), LENGTH_OF_SIZE_FIELD));
+                    stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(references.size()), LENGTH_OF_REFCOUNT_FIELD));
+                    stringBuilder.append(Trytes.fromNumber(BigInteger.valueOf(attributes.size()), LENGTH_OF_ATTRIBUTECOUNT_FIELD));
+                    messageOffset = LENGTH_OF_HEADER;
                 }
 
                 if(i>0) {

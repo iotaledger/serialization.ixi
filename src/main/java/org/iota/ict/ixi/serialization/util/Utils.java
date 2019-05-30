@@ -31,4 +31,8 @@ public class Utils {
     public static boolean isValidAttributeName(String name) {
         return name.matches("^[A-Z9]{0,27}$");
     }
+
+    public static boolean isValidClassName(String className) {
+        return className.matches("^[A-Z9]{0,27}$");
+    }
 }
