@@ -15,6 +15,10 @@ public class ClassFragment extends BundleFragment {
 
     public static final int CURL_ROUNDS_CLASS_HASH = 27;
 
+    public static final int TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD = 6;
+    public static final int TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD = 27;
+    public static final int TRYTE_LENGTH_OF_ATTRIBUTE_FIELD = TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD+TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD;
+
     public static final int TRYTE_LENGTH_OF_SIZE_FIELD = 27;
     public static final int TRYTE_LENGTH_OF_REFCOUNT_FIELD = 27;
     public static final int TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD = 27;
@@ -25,6 +29,7 @@ public class ClassFragment extends BundleFragment {
     private final int attributeCount;
     private String classHash;
     private final int[] attributesLength;
+    private final String[] attributesName;
     private final String[] referencedClassHash;
     private final List<Integer> variableSizeAttributes = new ArrayList<>();
 
@@ -37,12 +42,13 @@ public class ClassFragment extends BundleFragment {
         refCount = Trytes.toNumber(headTransaction.signatureFragments().substring(TRYTE_LENGTH_OF_SIZE_FIELD,TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD)).intValue();
         attributeCount = Trytes.toNumber(headTransaction.signatureFragments().substring(TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD,TRYTE_LENGTH_OF_SIZE_FIELD+TRYTE_LENGTH_OF_REFCOUNT_FIELD+TRYTE_LENGTH_OF_ATTRIBUTECOUNT_FIELD)).intValue();
         attributesLength = new int[attributeCount];
+        attributesName = new String[attributeCount];
         int[] attributesOffsets = new int[attributeCount];
 
         //parse attributes metadata
         int currentOffset = TRYTE_LENGTH_OF_HEADER;
         for(int i=0;i<attributeCount;i++){
-            attributesLength[i] = Trytes.toNumber(headTransaction.signatureFragments().substring(currentOffset, currentOffset+6)).intValue();
+            attributesLength[i] = Trytes.toNumber(headTransaction.signatureFragments().substring(currentOffset, currentOffset+TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD)).intValue();
             if(i==0){
                 attributesOffsets[i] = 0;
             }else{
@@ -51,7 +57,8 @@ public class ClassFragment extends BundleFragment {
             if(attributesLength[i]==0){
                 variableSizeAttributes.add(i);
             }
-            currentOffset += 6;
+            currentOffset += TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD;
+            attributesName[i] = headTransaction.signatureFragments().substring(currentOffset, currentOffset+TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD);
         }
 
         //parse references metadata
@@ -121,10 +128,11 @@ public class ClassFragment extends BundleFragment {
         i = 0;
         while(i<attributeCount){
             if(attributesLength[i]==0){
-                sb.append(Trytes.fromNumber(BigInteger.valueOf(6), 6));
+                sb.append(Trytes.fromNumber(BigInteger.valueOf(TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD), TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
             }else {
-                sb.append(Trytes.fromNumber(BigInteger.valueOf(attributesLength[i]), 6));
+                sb.append(Trytes.fromNumber(BigInteger.valueOf(attributesLength[i]), TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
             }
+            sb.append(attributesName[i]);
             i+=1;
         }
         return IotaCurlHash.iotaCurlHash(sb.toString(),sb.length(),CURL_ROUNDS_CLASS_HASH);
@@ -166,6 +174,7 @@ public class ClassFragment extends BundleFragment {
         private int dataSize;
         private final List<String> references = new ArrayList<>();
         private final List<String> attributes = new ArrayList<>();
+        private final List<String> attributesName = new ArrayList<>();
 
         public Builder addReferencedClasshash(String referencedClassHash){
             references.add(referencedClassHash);
@@ -177,12 +186,15 @@ public class ClassFragment extends BundleFragment {
             return this;
         }
 
-        public Builder addAttribute(int tryteSize){
+        public Builder addAttribute(int tryteSize, String name){
             assert tryteSize < 193710245;
-            attributes.add(Trytes.fromNumber(BigInteger.valueOf(tryteSize),6));
+            assert name.length() <= 27;
+            assert Utils.isValidAttributeName(name);
+            attributes.add(Trytes.fromNumber(BigInteger.valueOf(tryteSize),TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD));
+            attributesName.add(Trytes.padRight(name, TRYTE_LENGTH_OF_ATTRIBUTE_NAME_FIELD));
             dataSize += tryteSize;
             if(tryteSize==0){
-                dataSize += 6;
+                dataSize += TRYTE_LENGTH_OF_ATTRIBUTE_SIZE_FIELD;
             }
             return this;
         }
@@ -206,7 +218,7 @@ public class ClassFragment extends BundleFragment {
 
         private void prepareTransactionBuilders() {
             int refCount = references.size();
-            int trytesRequiredForData = TRYTE_LENGTH_OF_HEADER + (6*attributes.size());
+            int trytesRequiredForData = TRYTE_LENGTH_OF_HEADER + ((TRYTE_LENGTH_OF_ATTRIBUTE_FIELD)*attributes.size());
             int transactionsRequiredForData = 1 + (trytesRequiredForData/Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
             int transactionsRequiredForReferences = 1 + refCount/2;
             int transactionsRequired = Math.max(transactionsRequiredForData, transactionsRequiredForReferences);

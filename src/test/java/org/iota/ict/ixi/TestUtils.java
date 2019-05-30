@@ -42,7 +42,7 @@ public class TestUtils {
     public static ClassFragment getRandomPublishedClassFragment(SerializationModule serializationModule, int... attributes) {
         ClassFragment.Builder builder = new ClassFragment.Builder();
         builder.addReferencedClasshash(TestUtils.randomHash());
-        for (int i : attributes) builder.addAttribute(i);
+        for (int i : attributes) builder.addAttribute(i, TestUtils.random(10));
         ClassFragment classFragment = serializationModule.publishBundleFragment(builder);
         safeSleep(100);
         return classFragment;

@@ -1,5 +1,6 @@
 package org.iota.ict.ixi.serialization.model;
 
+import org.iota.ict.ixi.TestUtils;
 import org.iota.ict.utils.Trytes;
 import org.junit.jupiter.api.Test;
 
@@ -11,13 +12,13 @@ public class ClassFragmentTest  {
     @Test
     public void buildSimpleClassFragmentTest(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.addAttribute(24);
+        builder.addAttribute(24,"");
         ClassFragment classFragment = builder.build();
         assertEquals(24, classFragment.getDataSize());
         assertEquals(0, classFragment.getRefCount());
 
         builder = new ClassFragment.Builder();
-        builder.addAttribute(27);
+        builder.addAttribute(27, TestUtils.random(10));
         ClassFragment classFragment2 = builder.build();
         assertEquals(27, classFragment2.getDataSize());
         assertEquals(0, classFragment2.getRefCount());
@@ -48,7 +49,7 @@ public class ClassFragmentTest  {
     @Test
     public void buildClassFragmentWithTwoRefTest(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.addAttribute(25);
+        builder.addAttribute(25, TestUtils.random(10));
         ClassFragment classFragment = builder.build();
 
         builder = new ClassFragment.Builder();
@@ -68,11 +69,11 @@ public class ClassFragmentTest  {
     @Test
     public void buildClassFragmentWithTreeRefTest(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.addAttribute(25);
+        builder.addAttribute(25, TestUtils.random(10));
         ClassFragment classFragment = builder.build();
 
         builder = new ClassFragment.Builder();
-        builder.addAttribute(0);
+        builder.addAttribute(0, TestUtils.random(10));
         builder.addReferencedClass(classFragment);
         builder.addReferencedClass(classFragment);
         builder.addReferencedClass(classFragment);
@@ -89,9 +90,9 @@ public class ClassFragmentTest  {
     @Test
     public void buildClassFragmentWithVariableSizeAttributes(){
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.addAttribute(25);
-        builder.addAttribute(25);
-        builder.addAttribute(0);
+        builder.addAttribute(25, TestUtils.random(10));
+        builder.addAttribute(25, TestUtils.random(10));
+        builder.addAttribute(0, TestUtils.random(10));
         ClassFragment classFragment = builder.build();
         assertEquals(56, classFragment.getDataSize());
     }

@@ -56,7 +56,7 @@ public class SerializationEEETest {
     private DataFragment createDataBundle(String... data) {
         ClassFragment.Builder builder = new ClassFragment.Builder();
         for (String s : data) {
-            builder.addAttribute(0);
+            builder.addAttribute(0, TestUtils.random(10));
         }
         ClassFragment classFragment = serializationModule.publishBundleFragment(builder);
         DataFragment.Builder dataBuilder = new DataFragment.Builder(classFragment);
@@ -83,16 +83,16 @@ public class SerializationEEETest {
         String h1 = TestUtils.randomHash();
         String h2 = TestUtils.randomHash();
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        builder.addAttribute(3);
-        builder.addAttribute(6);
-        builder.addAttribute(9);
+        builder.addAttribute(3, TestUtils.random(10));
+        builder.addAttribute(6, TestUtils.random(10));
+        builder.addAttribute(9, TestUtils.random(10));
         builder.addReferencedClasshash(h1);
         builder.addReferencedClasshash(h2);
 
         final String expected = builder.build().getClassHash();
 
         submitEffectAndAssert(env,
-                "3;6;9;" + h1 + ";" + h2,
+                "3 A;6 B;9 C;" + h1 + ";" + h2,
                 response -> {
                     assertEquals(2, response.length);
                     assertEquals(expected, response[1]);
@@ -103,7 +103,7 @@ public class SerializationEEETest {
     public void computeClassHash2EEETest() throws InterruptedException {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "computeClassHash");
         submitEffectAndAssert(env,
-                "24;" + TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash(),
+                "24 AAA;" + TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash(),
                 response -> {
                     assertEquals(2, response.length);
                     assertEquals(81, response[1].length());
@@ -147,7 +147,7 @@ public class SerializationEEETest {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "publishClassFragment");
 
         submitEffectAndAssert(env,
-                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";24",
+                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";24 ATTRIB",
                 response -> {
                     assertEquals(3, response.length);
                     assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, response[1].length());
@@ -161,7 +161,7 @@ public class SerializationEEETest {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "publishClassFragment");
 
         submitEffectAndAssert(env,
-                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";24;" + TestUtils.randomHash(),
+                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";24 MY9ATTRIB;" + TestUtils.randomHash(),
                 response -> {
                     assertEquals(3, response.length);
                     assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, response[1].length());
@@ -297,13 +297,13 @@ public class SerializationEEETest {
     @Test
     public void buildGetReferencedAttributeEEETest() throws InterruptedException {
         ClassFragment attributesClass = serializationModule.publishBundleFragment(
-                new ClassFragment.Builder().addAttribute(10).addAttribute(20));
+                new ClassFragment.Builder().addAttribute(10, TestUtils.random(10)).addAttribute(20, TestUtils.random(10)));
         DataFragment referenced = serializationModule.publishBundleFragment(
                 new DataFragment.Builder(attributesClass).setAttribute(0, "ATT9ONE")
                         .setAttribute(1, "ATT9TWO"));
 
         ClassFragment referencingClass = serializationModule.publishBundleFragment(
-                new ClassFragment.Builder().addReferencedClass(attributesClass).addAttribute(20));
+                new ClassFragment.Builder().addReferencedClass(attributesClass).addAttribute(20, TestUtils.random(10)));
         DataFragment referencingData = serializationModule.publishBundleFragment(
                 new DataFragment.Builder(referencingClass).setReference(0, referenced.getHeadTransaction().hash)
         );

@@ -79,7 +79,7 @@ public class SerializationModuleIT {
     @Test
     public void testLoadReferencedDataFragment(){
         ClassFragment classFragment = serializationModule.publishBundleFragment(new ClassFragment.Builder()
-                .addAttribute(9)
+                .addAttribute(9, TestUtils.random(10))
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81)));
         byte[] data = new byte[]{1,1,1,1,1,1,1,1,1};
@@ -87,7 +87,7 @@ public class SerializationModuleIT {
                 .setAttribute(0,data);
 
         ClassFragment classFragment2 = new ClassFragment.Builder()
-                .addAttribute(9)
+                .addAttribute(9, TestUtils.random(10))
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81))
                 .build();
@@ -108,7 +108,7 @@ public class SerializationModuleIT {
     @Test
     public void testLoadReferencedDataFragmentLongData(){
         ClassFragment classFragment = serializationModule.publishBundleFragment(new ClassFragment.Builder()
-                .addAttribute(25002/3)
+                .addAttribute(25002/3, TestUtils.random(10))
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81)));
 
@@ -118,7 +118,7 @@ public class SerializationModuleIT {
         DataFragment fragment0 = serializationModule.publishBundleFragment(builder);
 
         ClassFragment classFragment2 = serializationModule.publishBundleFragment(new ClassFragment.Builder()
-                .addAttribute(25002/3)
+                .addAttribute(25002/3, TestUtils.random(10))
                 .addReferencedClasshash(TestUtils.random(81))
                 .addReferencedClasshash(TestUtils.random(81)));
 
@@ -206,12 +206,12 @@ public class SerializationModuleIT {
         DataFragment referencedFragment = serializationModule.publishBundleFragment(referencedFragmentBuilder);
 
         ClassFragment.Builder referencingClass1Builder = new ClassFragment.Builder()
-                .addAttribute(1)
+                .addAttribute(1, TestUtils.random(10))
                 .addReferencedClasshash(referencedClass.getClassHash());
         ClassFragment referencingClass1 = serializationModule.publishBundleFragment(referencingClass1Builder);
 
         ClassFragment.Builder referencingClass2Builder = new ClassFragment.Builder()
-                .addAttribute(1)
+                .addAttribute(1, TestUtils.random(10))
                 .addReferencedClasshash(Trytes.NULL_HASH)
                 .addReferencedClasshash(referencedClass.getClassHash());
         ClassFragment referencingClass2 = serializationModule.publishBundleFragment(referencingClass2Builder);
@@ -261,7 +261,7 @@ public class SerializationModuleIT {
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragmentForClassHash(Trytes.NULL_HASH));
         assertNull(serializationModule.loadClassFragmentForClassHash(TestUtils.randomHash()));
         ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder()
-                .addAttribute(99)
+                .addAttribute(99, TestUtils.random(10))
                 .addReferencedClasshash(TestUtils.randomHash());
         ClassFragment classFragment = serializationModule.publishBundleFragment(classFragmentBuilder);
         safeSleep(100);
@@ -275,7 +275,7 @@ public class SerializationModuleIT {
         assertThrows(IllegalArgumentException.class, ()-> serializationModule.loadClassFragment(Trytes.NULL_HASH));
         assertNull(serializationModule.loadClassFragment(TestUtils.randomHash()));
         ClassFragment.Builder classFragmentBuilder = new ClassFragment.Builder()
-                .addAttribute(99)
+                .addAttribute(99, TestUtils.random(10))
                 .addReferencedClasshash(TestUtils.randomHash());
         ClassFragment classFragment = serializationModule.publishBundleFragment(classFragmentBuilder);
 
@@ -347,7 +347,7 @@ public class SerializationModuleIT {
     }
 
     private Bundle createClassBundle() {
-        ClassFragment.Builder builder = new ClassFragment.Builder().addAttribute(33);
+        ClassFragment.Builder builder = new ClassFragment.Builder().addAttribute(33, TestUtils.random(10));
         ClassFragment.Prepared preparedClass = serializationModule.prepareClassFragment(builder);
         assertEquals(1,preparedClass.fromTailToHead().size());
 
@@ -404,7 +404,7 @@ public class SerializationModuleIT {
     @Test
     public void persistenceCleanerTest(){
         String randomHash = TestUtils.randomHash();
-        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(10).build();
+        ClassFragment classFragment = new ClassFragment.Builder().addAttribute(10, TestUtils.random(27)).build();
         ClassFragment classFragment2 = new ClassFragment.Builder().addReferencedClass(classFragment).build();
         DataFragment dataFragment = new DataFragment.Builder(classFragment2).setReference(0, randomHash).build();
 

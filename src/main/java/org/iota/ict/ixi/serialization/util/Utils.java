@@ -28,4 +28,7 @@ public class Utils {
         return hashTrits[position] == 1;
     }
 
+    public static boolean isValidAttributeName(String name) {
+        return name.matches("^[A-Z9]{0,27}$");
+    }
 }

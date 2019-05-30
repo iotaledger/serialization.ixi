@@ -123,8 +123,10 @@ public class EEEFunctions {
         String argument = request.argument;
         String[] split = argument.split(";");
         ClassFragment.Builder builder = new ClassFragment.Builder();
-        for(String s:split){
-            appendAttributeOrRef(builder, s);
+        int i = 0;
+        while(i<split.length){
+            appendAttributeOrRef(builder, split[i]);
+            i++;
         }
         String ret = builder.build().getClassHash();
         request.submitReturn(ixi, ret);
@@ -168,9 +170,10 @@ public class EEEFunctions {
         if (Trytes.NULL_HASH.equals(s)) {
             builder.addReferencedClasshash(s);
         } else {
-            try {
-                builder.addAttribute(Integer.valueOf(s));
-            } catch (NumberFormatException e) {
+            if(s.indexOf(" ")>-1){
+                String[] split = s.split(" ");
+                builder.addAttribute(Integer.valueOf(split[0]), split[1]);
+            }else{
                 builder.addReferencedClasshash(s);
             }
         }
