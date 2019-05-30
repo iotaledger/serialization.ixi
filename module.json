@@ -4,6 +4,6 @@
   "description": "Serialization.ixi is an IXI (IOTA eXtension Interface) module for the Iota Controlled agenT (Ict). It extends the core client with the functionality to serialize/deserialize arbitrary data",
   "repository": "iotaledger/serialization.ixi",
   "gui_port": -1,
-  "supported_versions": ["0.6"],
+  "supported_versions": ["0.7-SNAPSHOT"],
   "version": "0.1"
 }

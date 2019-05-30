@@ -96,6 +96,13 @@ parts : the 6 first trytes encode the size in trytes, then followed by the data 
     public Set<DataFragment> findDataFragmentReferencing(String referencedTransactionHash, DataFragment.Filter filter);
     
     /**
+    * Allows querying metadata.
+    * @param referencedClassHash the classHash to be referenced
+    * @return all ClassFragment defining a reference with referencedClassHash
+    */
+    public Set<ClassFragment> findClassFragmentReferencing(String referencedClassHash, ClassFragment.Filter filter);
+        
+    /**
     * @return the ClassFragment with head transaction identified by transactionHash,
     * or null if the transaction is not the head of a valid ClassFragment.
     * @throws IllegalArgumentException when transactionHash is not a valid transaction hash (81 trytes)

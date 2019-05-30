@@ -1,5 +1,6 @@
 package org.iota.ict.ixi.serialization;
 
+import org.iota.ict.eee.EffectListenerQueue;
 import org.iota.ict.eee.Environment;
 import org.iota.ict.ixi.Ixi;
 import org.iota.ict.ixi.IxiModule;
@@ -10,7 +11,6 @@ import org.iota.ict.ixi.serialization.util.Utils;
 import org.iota.ict.model.bundle.Bundle;
 import org.iota.ict.model.transaction.Transaction;
 import org.iota.ict.network.gossip.GossipEvent;
-import org.iota.ict.network.gossip.GossipPreprocessor;
 import org.iota.ict.utils.Constants;
 import org.iota.ict.utils.Trytes;
 import org.slf4j.Logger;
@@ -39,15 +39,14 @@ public class SerializationModule extends IxiModule {
     public void run() {
         EEEFunctions.init(this, ixi);
 
-        //register a gossip listener observing Bundles
-        GossipPreprocessor gossipPreprocessor = new GossipPreprocessor(ixi, -999);
-        ixi.addListener(gossipPreprocessor);
+        //register an effect listener observing Bundles
+        EffectListenerQueue<GossipEvent> bundleListener = new EffectListenerQueue(Constants.Environments.GOSSIP);
+        ixi.addListener(bundleListener);
         GossipEventHandler gossipEventHandler = new GossipEventHandler();
         try{
             while(isRunning()){
-                GossipEvent gossipEvent = gossipPreprocessor.takeEffect();
+                GossipEvent gossipEvent = bundleListener.takeEffect();
                 gossipEventHandler.handleEvent(gossipEvent);
-                gossipPreprocessor.passOn(gossipEvent);
             }
         }catch (InterruptedException e){
             LOGGER.info("Serialization.ixi interrupted...");
@@ -242,6 +241,45 @@ public class SerializationModule extends IxiModule {
         for(DataFragment f:ret){
             if(filter.match(f)){
                 filtered.add(f);
+            }
+        }
+        return filtered;
+    }
+
+
+    /**
+     * @param referencedClassHash the classHash to be referenced (by any reference)
+     * @param filter a filter to refine the result set (can be null)
+     * @return all ClassFragment referencing *referencedClassHash* from any reference
+     * @see ClassFragment.Filter
+     */
+    @SuppressWarnings("unchecked")
+    public Set<ClassFragment> findClassFragmentReferencing(String referencedClassHash, ClassFragment.Filter filter) {
+        return findClassFragmentReferencingAtIndex(-1,referencedClassHash, filter);
+    }
+
+    /**
+     * @param referencedClassHash the classHash to be referenced (by reference at index 'referenceIndex')
+     * @param referenceIndex of the reference to inspect
+     * @param filter a filter to refine the result set (can be null)
+     * @return all ClassFragment referencing *referencedClasshash* from any reference
+     * @see ClassFragment.Filter
+     */
+    @SuppressWarnings("unchecked")
+    public Set<ClassFragment> findClassFragmentReferencingAtIndex(int referenceIndex, String referencedClassHash, ClassFragment.Filter filter) {
+        if (referencedClassHash == null || referencedClassHash.equals(Trytes.NULL_HASH)) {
+            throw new IllegalArgumentException("referencedClassHash cannot be null");
+        }
+        HashSet<ClassFragment> filtered = new HashSet<>();
+        for(ClassFragment classFragment: persistence.classFragments.values()){
+            if(classFragment.isReferencing(referenceIndex,referencedClassHash)){
+                if(filter!=null){
+                    if(filter.match(classFragment)){
+                        filtered.add(classFragment);
+                    }
+                }else{
+                    filtered.add(classFragment);
+                }
             }
         }
         return filtered;

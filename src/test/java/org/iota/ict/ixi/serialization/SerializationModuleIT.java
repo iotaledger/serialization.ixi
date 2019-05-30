@@ -283,6 +283,31 @@ public class SerializationModuleIT {
         assertEquals(classFragment.getClassHash(), loaded.getClassHash());
     }
 
+    @Test
+    public void testFindClassFragmentReferencing() {
+        ClassFragment class1 = TestUtils.getRandomPublishedClassFragment(serializationModule,27);
+        ClassFragment class2 = TestUtils.getRandomPublishedClassFragment(serializationModule,27);
+        ClassFragment.Builder referencingBuilder = new ClassFragment.Builder().addReferencedClass(class1).addReferencedClass(class2);
+        ClassFragment referencing =serializationModule.publishBundleFragment(referencingBuilder);
+        safeSleep(100);
+        Set<ClassFragment> rs1 = serializationModule.findClassFragmentReferencing(class1.getClassHash(),null);
+        assertEquals(1,rs1.size());
+
+        Set<ClassFragment> rs2 = serializationModule.findClassFragmentReferencingAtIndex(0,class1.getClassHash(),null);
+        assertEquals(1,rs2.size());
+
+        Set<ClassFragment> rs3 = serializationModule.findClassFragmentReferencingAtIndex(1,class1.getClassHash(),null);
+        assertEquals(0,rs3.size());
+
+        Set<ClassFragment> rs4 = serializationModule.findClassFragmentReferencing(class1.getClassHash(), classFragment -> classFragment.getAttributeCount()==1);
+        assertEquals(0,rs4.size());
+
+        Set<ClassFragment> rs5 = serializationModule.findClassFragmentReferencingAtIndex(0,class1.getClassHash(),classFragment -> classFragment.getAttributeCount()==0);
+        assertEquals(1,rs5.size());
+
+        Set<ClassFragment> rs6 = serializationModule.findClassFragmentReferencing(referencing.getClassHash(),null);
+        assertEquals(0,rs6.size());
+    }
 
     @Test
     public void getAttributeTrytesTest() {

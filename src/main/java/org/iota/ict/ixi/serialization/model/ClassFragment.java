@@ -146,6 +146,16 @@ public class ClassFragment extends BundleFragment {
         }
     }
 
+    public boolean isReferencing(int referenceIndex, String anotherClasshash){
+        if(anotherClasshash==null) return false;
+        if(referenceIndex<0){
+            for(int i=0;i<refCount;i++){
+                if(anotherClasshash.equals(referencedClassHash[i]))return true;
+            }
+            return false;
+        }
+        return anotherClasshash.equals(getClassHashForReference(referenceIndex));
+    }
     protected int getTryteLengthForAttribute(int attributeIndex){
         return attributesLength[attributeIndex];
     }
@@ -255,6 +265,13 @@ public class ClassFragment extends BundleFragment {
 
     }
 
+    public interface Filter<T> {
+        boolean match(ClassFragment classFragment);
+
+        static ClassFragment.Filter and(ClassFragment.Filter f0, ClassFragment.Filter f1){
+            return fragment -> f0.match(fragment) && f1.match(fragment);
+        }
+    }
 
     public static class Prepared {
 
