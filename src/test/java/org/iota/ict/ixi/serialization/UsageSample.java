@@ -27,7 +27,6 @@ public class UsageSample {
 
     @BeforeAll
     public static void startIct() throws Exception {
-        //System.setProperty("log4j.configurationFile","log4j2.xml");
         EditableProperties properties = new EditableProperties().host("localhost").port(2487).minForwardDelay(0).maxForwardDelay(10).guiEnabled(false);
         ict = new Ict(properties.toFinal());
         serializationModule = (SerializationModule) ict.getModuleHolder().loadVirtualModule(SerializationModule.class, "Serialization.ixi");
@@ -41,7 +40,9 @@ public class UsageSample {
 
     @Test
     public void demoJavaAPI(){
+        //=================================================
         //First, let's publish a random transaction
+        //=================================================
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.signatureFragments = Trytes.padRight("THE9REFERENCED9TRANSACTION", Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
         Transaction theTargetTransaction = transactionBuilder.build();
@@ -89,12 +90,14 @@ public class UsageSample {
         //Our data is now published, let's search for it
         //=================================================
 
-        //search for allDataFragments referencing our target. (we expect 2)
+        //search for allDataFragments referencing our target.
+        // (we expect 2)
         Set<DataFragment> allDataFragmentReferencingTarget = serializationModule.findDataFragmentReferencing(theTargetTransactionHash, null);
         assertEquals(2, allDataFragmentReferencingTarget.size());
 
 
-        //search for allDataFragments referencing our target with ATTRIB value "VALUE9A". (we expect 1, and it should be firstDataFragment)
+        //search for allDataFragments referencing our target with ATTRIB value "VALUE9A".
+        //(we expect 1, and it should be firstDataFragment)
         Set<DataFragment> allDataFragmentReferencingTargetWithAttribVALUE9A = serializationModule.findDataFragmentReferencing(theTargetTransactionHash, new DataFragment.Filter() {
             @Override
             public boolean match(DataFragment dataFragment) {
@@ -110,7 +113,10 @@ public class UsageSample {
 
     @Test
     public void demoEEE_API(){
+
+        //=================================================
         //First, let's publish a random transaction
+        //=================================================
         TransactionBuilder transactionBuilder = new TransactionBuilder();
         transactionBuilder.signatureFragments = Trytes.padRight("THE9REFERENCED9TRANSACTION", Transaction.Field.SIGNATURE_FRAGMENTS.tryteLength);
         Transaction theTargetTransaction = transactionBuilder.build();
@@ -128,7 +134,8 @@ public class UsageSample {
         //To build a DataFragment, we need a ClassFragment :
         //(in this example, our class have a reference to a random transaction and an attribute name 'ATTRIB' with a length of 33 trytes)
         String response = caller.call(new FunctionEnvironment("Serialization.ixi","publishClassFragment"),
-                "JUST9ANOTHER9CLASS9NAME;"+Trytes.NULL_HASH+";"+Trytes.NULL_HASH+";33 ATTRIB;"+Trytes.NULL_HASH,
+                /*   className;trunk;branch;attribute 0 definition; reference 0 definition   */
+                "JUST9ANOTHER9CLASS9NAME;"+Trytes.NULL_HASH+";"+Trytes.NULL_HASH+";33 ATTRIB;"+Trytes.NULL_HASH,  //using a different classname to avoid collision with the other test
                 250);
 
         String myClassFragmentClassHash = response.split(";")[1];
@@ -139,6 +146,7 @@ public class UsageSample {
         //the first dataFragment will reference the target transaction that we published earlier.
 
         response = caller.call(new FunctionEnvironment("Serialization.ixi","publishDataFragment"),
+                /* classhash;trunk;branch;attribute 0;reference 0   */
                 myClassFragmentClassHash+";"+Trytes.NULL_HASH+";"+Trytes.NULL_HASH+";A 0 VALUE9A;R 0 "+theTargetTransactionHash,
                 250);
         String firstFragmentHash = response;
@@ -162,7 +170,8 @@ public class UsageSample {
         //Our data is now published, let's search for it
         //=================================================
 
-        //search for allDataFragments referencing our target. (we expect 2)
+        //search for allDataFragments referencing our target.
+        // (we expect 2 fragments)
         response = caller.call(new FunctionEnvironment("Serialization.ixi","findReferencing"),
                 theTargetTransactionHash,
                 250);
@@ -171,7 +180,8 @@ public class UsageSample {
         assertTrue(response.contains(firstFragmentHash));
         assertTrue(response.contains(secondFragmentHash));
 
-        //search for allDataFragments referencing our target with ATTRIB value "VALUE9A". (we expect 1, and it should be firstDataFragment)
+        //search for allDataFragments referencing our target with ATTRIB value "VALUE9A".
+        // (we expect 1 fragment, and it should be firstDataFragment)
         response = caller.call(new FunctionEnvironment("Serialization.ixi","findReferencing"),
                 theTargetTransactionHash+";0;VALUE9A",
                 250);
@@ -189,4 +199,5 @@ public class UsageSample {
             //ignore
         }
     }
+
 }
