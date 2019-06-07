@@ -146,7 +146,6 @@ public class SerializationEEETest {
     @Test
     public void publishClassFragmentEEETest() throws InterruptedException {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "publishClassFragment");
-
         submitEffectAndAssert(env, "ABCD;"+
                 TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";24 ATTRIB",
                 response -> {
@@ -175,7 +174,7 @@ public class SerializationEEETest {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "publishClassFragment");
 
         submitEffectAndAssert(env,"THE9CLASS9NAME;"+
-                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";25;"
+                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";25 AZERTY;"
                         + TestUtils.randomHash() + ";" + TestUtils.randomHash(),
                 response -> {
                     assertEquals(3, response.length);
@@ -218,7 +217,7 @@ public class SerializationEEETest {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "prepareClassFragment");
 
         submitEffectAndAssert(env,"A9CLASS;"+
-                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";25",
+                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";25 ATTRIB",
                 response -> {
                     assertEquals(3, response.length);
                     assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, response[1].length());
@@ -232,7 +231,7 @@ public class SerializationEEETest {
     public void prepareClassFragment2EEETest() throws InterruptedException {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "prepareClassFragment");
         submitEffectAndAssert(env,"ABC;"+
-                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";" + TestUtils.randomHash() + "25;",
+                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";" + TestUtils.randomHash() + ";25 ATTRIBUTE;",
                 response -> {
                     assertEquals(3, response.length);
                     assertEquals(Transaction.Field.TRUNK_HASH.tryteLength, response[1].length());
@@ -246,7 +245,7 @@ public class SerializationEEETest {
         final FunctionEnvironment env = new FunctionEnvironment("Serialization.ixi", "prepareClassFragment");
 
         submitEffectAndAssert(env, "CLS;"+
-                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";25;"
+                TestUtils.randomBundleHeadHash() + ";" + TestUtils.randomHash() + ";25 MY9ATTRIB;"
                         + TestUtils.randomHash() + ";" + TestUtils.randomHash(),
                 response -> {
                     assertEquals(3, response.length);

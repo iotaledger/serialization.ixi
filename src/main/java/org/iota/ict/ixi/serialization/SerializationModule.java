@@ -367,7 +367,7 @@ public class SerializationModule extends IxiModule {
     }
 
     private <F extends BundleFragment,T extends BundleFragment.Builder<F>> F submitFragment(T fragmentBuilder) {
-        if(fragmentBuilder.getReferencedTrunk()==null || Utils.isBundleHead(fragmentBuilder.getReferencedTrunk())){
+        if(fragmentBuilder.getReferencedTrunk()==null || fragmentBuilder.getReferencedTrunk().equals(Trytes.NULL_HASH) || Utils.isBundleHead(fragmentBuilder.getReferencedTrunk())){
             fragmentBuilder.setTailFragment(true);
         }
         F fragment = fragmentBuilder.build();

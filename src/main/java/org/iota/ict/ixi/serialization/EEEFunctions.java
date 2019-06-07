@@ -175,7 +175,7 @@ public class EEEFunctions {
                 .setReferencedTrunk(split[1])
                 .setReferencedBranch(split[2]);
         if (split.length > 3) {
-            int i = 4;
+            int i = 3;
             while (i < split.length) {
                 String s = split[i];
                 appendAttributeOrRef(builder, s);
