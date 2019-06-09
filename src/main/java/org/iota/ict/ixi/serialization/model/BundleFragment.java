@@ -6,15 +6,19 @@ import org.iota.ict.model.transaction.TransactionBuilder;
 import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 @SuppressWarnings("WeakerAccess")
 public abstract class BundleFragment {
 
     private WeakReference<Transaction> headTransaction;
+    private final String txHeadHash;
 
     public BundleFragment(Transaction headTransaction) {
+        txHeadHash = headTransaction.hash;
         init(headTransaction);
     }
+
 
     protected void init(Transaction headTransaction){
         if(!hasHeadFlag(headTransaction)){
@@ -53,6 +57,19 @@ public abstract class BundleFragment {
 
     abstract boolean hasTailFlag(Transaction t);
     abstract boolean hasHeadFlag(Transaction t);
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BundleFragment)) return false;
+        BundleFragment fragment = (BundleFragment) o;
+        return Objects.equals(txHeadHash, fragment.txHeadHash);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(txHeadHash);
+    }
 
     public abstract static class Builder<T extends BundleFragment> {
 
